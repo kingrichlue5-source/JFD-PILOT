@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ER Nurse Evaluation - JFD Hospital HMS{% endblock %}
+{% block page_title %}ER Patient Evaluation Form for Nurses{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    {% if not visit %}
+    <div class="glass-card p-8 max-w-2xl mx-auto space-y-6">
+        <div class="text-center space-y-2">
+            <div class="text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <h3 class="font-bold text-slate-700 text-lg">Find a Patient Visit</h3>
+            <p class="text-xs text-slate-400">Search by patient name, MRN, or visit number to begin the ER evaluation.</p>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Search Patient or Visit</label>
+            <input type="text" id="er-search-input" class="input-field" placeholder="Type name, MRN, or visit number..." oninput="searchForVisit(this.value)">
+        </div>
+        <div id="er-search-results" class="space-y-2 hidden max-h-[300px] overflow-y-auto"></div>
+    </div>
+    {% endif %}
+
+    {% if visit %}
+    <form method="post" action="{% url 'er-evaluation-page' %}" id="er-eval-form">
+        {% csrf_token %}
+        <input type="hidden" name="visit_id" value="{{ visit.id }}">
+
+        <div class="glass-card p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-xl shadow-lg" id="patient-initials">{{ patient_initials }}</div>
+                <div>
+                    <h3 class="font-bold text-xl leading-none">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</h3>
+                    <p class="text-xs text-slate-300 mt-1">MRN: {{ visit.patient.mrn }} &bull; Visit: {{ visit.visit_number }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/clinical/emergency/" class="px-3 py-1.5 text-xs font-bold text-white/80 bg-white/10 hover:bg-white/20 rounded-xl transition-all">&larr; ER Dashboard</a>
+                <div class="text-right hidden sm:block">
+                    <span class="text-[11px] text-slate-400 block font-medium">Evaluating Nurse</span>
+                    <span class="text-xs font-bold text-white">{{ request.user.get_full_name|default:"Nurse" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+
+            <!-- 1. Hospital Header -->
+            <div class="glass-card p-6 text-center space-y-1">
+                <h2 class="text-lg font-bold text-slate-900">Jackson F. Doe Memorial Regional Referral Hospital</h2>
+                <p class="text-sm font-semibold text-slate-600">ER Patient Evaluation Form for Nurses</p>
+            </div>
+
+            <!-- 3. Arrival Info -->
+            <div class="glass-card accent-blue p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Arrival Information</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">Mode of Arrival *</label>
+                        <div class="space-y-1.5">
+                            {% for val, label in arrival_modes %}
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="mode_of_arrival" value="{{ val }}" class="w-4 h-4 accent-[var(--blue-500)]" {% if forloop.first %}checked{% endif %}>
+                                <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">Accompanied By</label>
+                        <div class="space-y-1.5">
+                            {% for val, label in accompanied_by %}
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="accompanied_by" value="{{ val }}" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Chief Complaint -->
+            <div class="glass-card accent-rose p-6 space-y-3">
+                <h4 class="section-title">
+                    <span>Chief Complaint</span>
+                </h4>
+                <div>
+                    <textarea name="chief_complaint" rows="3" required class="input-field" placeholder="Describe the patient's main complaint...">{{ data.chief_complaint|default:"" }}</textarea>
+                </div>
+            </div>
+
+            <!-- 5. History of Present Illness -->
+            <div class="glass-card accent-amber p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>History of Present Illness (HPI)</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Onset</label>
+                        <input type="text" name="hpi_onset" class="input-field" placeholder="e.g. 2 hours ago" value="{{ data.hpi_onset|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Location</label>
+                        <input type="text" name="hpi_location" class="input-field" placeholder="e.g. Epigastric" value="{{ data.hpi_location|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Character</label>
+                        <input type="text" name="hpi_character" class="input-field" placeholder="e.g. Sharp, stabbing" value="{{ data.hpi_character|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Severity (1-10)</label>
+                        <input type="number" min="1" max="10" name="hpi_severity" class="input-field" placeholder="e.g. 7" value="{{ data.hpi_severity|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Aggravating Factors</label>
+                        <input type="text" name="hpi_aggravating" class="input-field" placeholder="e.g. Movement, eating" value="{{ data.hpi_aggravating|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Alleviating Factors</label>
+                        <input type="text" name="hpi_alleviating" class="input-field" placeholder="e.g. Rest, NSAIDs" value="{{ data.hpi_alleviating|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Past Medical History -->
+            <div class="glass-card accent-violet p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Past Medical History</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Chronic Illnesses</label>
+                        <input type="text" name="pmh_chronic_illness" class="input-field" placeholder="e.g. Hypertension, Diabetes" value="{{ data.pmh_chronic_illness|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Previous Surgery</label>
+                        <input type="text" name="pmh_previous_surgery" class="input-field" placeholder="e.g. Appendectomy 2019" value="{{ data.pmh_previous_surgery|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Allergies</label>
+                        <input type="text" name="pmh_allergies" class="input-field" placeholder="e.g. Penicillin" value="{{ data.pmh_allergies|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Current Medications</label>
+                        <input type="text" name="pmh_medications" class="input-field" placeholder="e.g. Metformin, Lisinopril" value="{{ data.pmh_medications|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Review of Systems -->
+            <div class="glass-card accent-blue p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Review of Systems</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {% for field, label in ros_fields %}
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="{{ field }}" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 8. Physical Examination -->
+            <div class="glass-card accent-emerald p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Physical Examination</span>
+                </h4>
+
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Vital Signs</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">BP Systolic</label>
+                            <input type="number" name="bp_systolic" class="input-field" placeholder="120" value="{{ data.bp_systolic|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">BP Diastolic</label>
+                            <input type="number" name="bp_diastolic" class="input-field" placeholder="80" value="{{ data.bp_diastolic|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Heart Rate</label>
+                            <input type="number" name="heart_rate" class="input-field" placeholder="72" value="{{ data.heart_rate|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">SpO2 (%)</label>
+                            <input type="number" step="0.1" name="sp_o2" class="input-field" placeholder="98" value="{{ data.sp_o2|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Temp (&deg;C)</label>
+                            <input type="number" step="0.1" name="temperature" class="input-field" placeholder="37.0" value="{{ data.temperature|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Resp Rate</label>
+                            <input type="number" name="respiratory_rate" class="input-field" placeholder="18" value="{{ data.respiratory_rate|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-3 border-t border-slate-100">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Examination Findings</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">HEENT</label>
+                            <textarea name="exam_heent" rows="2" class="input-field" placeholder="Head, Eyes, Ears, Nose, Throat...">{{ data.exam_heent|default:"" }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">CVS (Cardiovascular)</label>
+                            <textarea name="exam_cvs" rows="2" class="input-field" placeholder="Heart sounds, murmurs, pulses...">{{ data.exam_cvs|default:"" }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Respiratory</label>
+                            <textarea name="exam_respiratory" rows="2" class="input-field" placeholder="Breath sounds, wheezing...">{{ data.exam_respiratory|default:"" }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Abdomen</label>
+                            <textarea name="exam_abdomen" rows="2" class="input-field" placeholder="Tenderness, distension, bowel sounds...">{{ data.exam_abdomen|default:"" }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">GUS (Genitourinary)</label>
+                            <textarea name="exam_gus" rows="2" class="input-field" placeholder="Flank tenderness, output...">{{ data.exam_gus|default:"" }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Musculoskeletal</label>
+                            <textarea name="exam_musculoskeletal" rows="2" class="input-field" placeholder="Range of motion, swelling...">{{ data.exam_musculoskeletal|default:"" }}</textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">CNS (Neurological)</label>
+                            <textarea name="exam_cns" rows="2" class="input-field" placeholder="GCS, pupil response, motor function...">{{ data.exam_cns|default:"" }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Triage Category -->
+            <div class="glass-card p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Triage Category</span>
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm font-bold">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="triage_category" value="red" class="peer sr-only">
+                        <span class="block py-4 rounded-xl border-2 border-red-300 bg-red-50 text-red-700 peer-checked:bg-red-600 peer-checked:text-white peer-checked:border-red-600 transition-all">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            RED<br><span class="text-[10px] font-normal peer-checked:text-red-200">Immediate</span>
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="triage_category" value="yellow" class="peer sr-only">
+                        <span class="block py-4 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition-all">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            YELLOW<br><span class="text-[10px] font-normal">Urgent</span>
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="triage_category" value="green" class="peer sr-only">
+                        <span class="block py-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition-all">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            GREEN<br><span class="text-[10px] font-normal">Standard</span>
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="triage_category" value="black" class="peer sr-only">
+                        <span class="block py-4 rounded-xl border-2 border-slate-400 bg-slate-100 text-slate-600 peer-checked:bg-slate-800 peer-checked:text-white peer-checked:border-slate-800 transition-all">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                            BLACK<br><span class="text-[10px] font-normal">Expectant</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 10. Nursing Interventions -->
+            <div class="glass-card accent-amber p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Nursing Interventions</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {% for field, label in interventions %}
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="{{ field }}" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 11. Plan & Disposition -->
+            <div class="glass-card accent-rose p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Plan & Disposition</span>
+                </h4>
+
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                            <input type="checkbox" name="physician_notified" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                            <span class="text-sm font-bold text-slate-700">Physician Notified</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-slate-500">Time:</label>
+                            <input type="time" name="physician_notified_time" class="input-field w-36" value="{{ data.physician_notified_time|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Physician's Orders</label>
+                        <textarea name="physicians_order" rows="3" class="input-field" placeholder="Record physician orders here...">{{ data.physicians_order|default:"" }}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Pending Orders / Results</label>
+                        <textarea name="pending_orders" rows="3" class="input-field" placeholder="Lab results, imaging pending...">{{ data.pending_orders|default:"" }}</textarea>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Disposition *</label>
+                    <div class="flex flex-wrap gap-3">
+                        {% for val, label in disposition_choices %}
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="{{ val }}" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">{{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Remarks</label>
+                    <textarea name="remarks" rows="3" class="input-field" placeholder="Additional notes, follow-up instructions...">{{ data.remarks|default:"" }}</textarea>
+                </div>
+            </div>
+
+            <!-- 12. Submit -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="/clinical/emergency/" class="btn-outline text-xs">Cancel</a>
+                <button type="submit" class="btn-primary text-xs flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Save Evaluation
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function searchForVisit(query) {
+        const resultsDiv = document.getElementById('er-search-results');
+        if (!resultsDiv || query.length < 2) { if (resultsDiv) resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 8);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+
+            if (patients.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No patients found</div>';
+                return;
+            }
+
+            for (const p of patients) {
+                try {
+                    const visitsRes = await API.getVisits('?patient=' + p.id + '&status=checked_in&status=in_triage&status=in_progress&status=open');
+                    const visits = visitsRes.results || visitsRes || [];
+                    for (const v of visits) {
+                        if (v.visit_type === 'er') {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'w-full text-left p-3 bg-slate-50 hover:bg-primary/5 border border-slate-200 hover:border-primary/30 rounded-xl transition-all';
+                            btn.innerHTML =
+                                '<div class="flex items-center justify-between">' +
+                                '<span class="font-bold text-slate-900 text-sm">' + Utils.escapeHtml(p.first_name) + ' ' + Utils.escapeHtml(p.last_name) + '</span>' +
+                                '<span class="font-mono text-xs text-primary">' + Utils.escapeHtml(v.visit_number || '') + '</span>' +
+                                '</div>' +
+                                '<p class="text-xs text-slate-500 mt-0.5">MRN: ' + Utils.escapeHtml(p.mrn || '') + ' &bull; ' + Utils.escapeHtml(v.chief_complaint || 'No complaint') + '</p>';
+                            btn.onclick = function() {
+                                window.location.href = '/clinical/er-evaluation/?visit_id=' + v.id;
+                            };
+                            resultsDiv.appendChild(btn);
+                        }
+                    }
+                } catch (e) { /* skip patient */ }
+            }
+
+            if (resultsDiv.children.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No active ER visits found for matching patients</div>';
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,740 @@
+{% extends "base.html" %}
+{% load rbac_tags %}
+{% load export_tags %}
+
+{% block title %}Inpatient & Bed Matrix - JFD Hospital HMS{% endblock %}
+{% block page_title %}Inpatient Department (IPD) & Bed Matrix{% endblock %}
+
+{% block content %}
+{% user_has_permission "ENCOUNTER_EDIT" as can_edit %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Beds</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_beds }}</h3>
+                <span class="badge badge-info text-[10px]">{{ wards_count }} Wards</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Occupied Beds</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ occupied_beds }}</h3>
+                <span class="badge badge-success text-[10px]">{{ active_inpatients }} Inpatients</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Pending Admission</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ pending_admissions }}</h3>
+                <span class="badge badge-warning text-[10px]">Awaiting Bed</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Available Beds</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ available_beds }}</h3>
+                <span class="badge badge-success text-[10px]">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-blue p-6 space-y-6">
+        <div class="section-header-gradient rounded-xl px-5 py-4 flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h3 class="font-bold text-white text-lg">Hospital Bed Matrix</h3>
+                    {% export_buttons "ipd" %}
+                </div>
+                <p class="text-xs text-white/70">Live bed allocation status by ward and room</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openWardModal()" class="btn-action btn-action-blue">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Ward
+                </button>
+                <button onclick="openBedModal()" class="btn-action btn-action-blue">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Bed
+                </button>
+                <button onclick="openAdmissionModal()" class="btn-primary text-xs">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    New Admission
+                </button>
+            </div>
+        </div>
+        <div id="ward-container" class="space-y-4">
+            {% for ward_name, ward_data in beds_by_ward.items %}
+            <div class="space-y-4">
+                <div class="section-header-gradient rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <span class="font-bold text-white text-sm">{{ ward_name }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-white/80">
+                            {{ ward_data.beds|length }} beds
+                        </span>
+                        <button onclick="openEditWardModal('{{ ward_data.ward_id }}')" class="btn-action text-white bg-white/15 hover:bg-white/25 border-white/20">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Edit
+                        </button>
+                        {% if can_edit %}
+                        <button onclick="deleteWard('{{ ward_data.ward_id }}')" class="btn-action text-red-200 bg-red-500/20 hover:bg-red-500/30 border-red-500/20">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for bed in ward_data.beds %}
+                    {% if bed.is_occupied and bed.admission %}
+                    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800 text-xs">{{ bed.room_number }} - {{ bed.bed_number }}</span>
+                            <span class="badge badge-danger text-[10px]">OCCUPIED</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">{{ bed.admission.patient_name }}</p>
+                            <p class="text-xs text-slate-400">{{ bed.admission.diagnosis }}</p>
+                        </div>
+                        <div class="pt-2 border-t border-rose-200 flex items-center justify-between">
+                            <span class="text-slate-400 text-[10px]">Adm: {{ bed.admission.admission_date|date:"d M Y" }}</span>
+                            <div class="flex gap-1">
+                                <a href="/clinical/nurse-notes/?visit_id={{ bed.admission.visit.id }}" class="btn-action text-teal-700 bg-teal-50 hover:bg-teal-100 border-teal-200 no-underline" title="Nurse Notes (SOAP)">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </a>
+                                <button onclick="transferPatient('{{ bed.admission.id }}', '{{ bed.id }}')" class="btn-action btn-action-blue" title="Transfer">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                </button>
+                                <button onclick="dischargePatient('{{ bed.admission.id }}')" class="btn-action btn-action-rose">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    Discharge
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800 text-xs">{{ bed.room_number }} - {{ bed.bed_number }}</span>
+                            <span class="badge badge-success text-[10px]">AVAILABLE</span>
+                        </div>
+                        <div class="py-2 text-center text-slate-400 text-xs font-medium">Bed Clean & Ready</div>
+                        <div class="pt-2 border-t border-emerald-200 flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="assignBed('{{ bed.id }}')" class="btn-action btn-action-emerald">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    Admit
+                                </button>
+                                <button onclick="openEditBedModal('{{ bed.id }}')" class="btn-action btn-action-slate">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    Edit
+                                </button>
+                                {% if can_edit %}
+                                <button onclick="deleteBed('{{ bed.id }}')" class="btn-action btn-action-rose">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-slate-400 text-sm">No wards or beds configured. Click "+ Add Ward" to get started.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="glass-card accent-blue p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-white text-base">Bed Utilization — Active Admissions</h3>
+                <p class="text-xs text-white/70">All occupied beds with patient details</p>
+            </div>
+            <span class="text-xs font-bold text-white/80">{{ active_inpatients }} patient{{ active_inpatients|pluralize }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Patient</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">MRN</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Ward</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Room</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Bed</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Diagnosis</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Admission Date</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Status</th>
+                        <th class="text-right py-2 px-3 font-bold text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in admissions %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="py-2 px-3 font-bold text-slate-900">{{ a.patient.first_name }} {{ a.patient.last_name }}</td>
+                        <td class="py-2 px-3 text-slate-500">{{ a.patient.mrn }}</td>
+                        <td class="py-2 px-3 text-slate-600">{{ a.ward.name|default:"—" }}</td>
+                        <td class="py-2 px-3 text-slate-600">{{ a.room.room_number|default:"—" }}</td>
+                        <td class="py-2 px-3 text-slate-600">
+                            {% if a.bed %}
+                                {{ a.bed.bed_number }}
+                            {% else %}
+                                <span class="badge badge-warning text-[10px]">UNASSIGNED</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 px-3 text-slate-600 max-w-[200px] truncate" title="{{ a.admitting_diagnosis }}">{{ a.admitting_diagnosis|default:"—" }}</td>
+                        <td class="py-2 px-3 text-slate-500">{{ a.admission_date|date:"d M Y H:i" }}</td>
+                        <td class="py-2 px-3">
+                            <span class="badge badge-{% if a.status == 'active' %}success{% elif a.status == 'discharged' %}info{% else %}warning{% endif %} text-[10px]">{{ a.status }}</span>
+                        </td>
+                        <td class="py-2 px-3 text-right">
+                            {% if not a.bed %}
+                                <button onclick="assignBedToAdmission('{{ a.id }}')" class="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Assign Bed</button>
+                            {% else %}
+                                <button onclick="transferPatient('{{ a.id }}', '{{ a.bed.id }}')" class="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Transfer</button>
+                            {% endif %}
+                            {% if a.status == 'active' %}
+                                <button onclick="dischargePatient('{{ a.id }}')" class="px-2 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg">Discharge</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-6 text-center text-slate-400">No active admissions</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Progress Notes</h3>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="ipd-patient-search" class="input-field" placeholder="Search patient by name or MRN..." oninput="searchIPDPatient(this.value)">
+                    <div id="ipd-patient-results" class="mt-1 space-y-1 hidden max-h-[150px] overflow-y-auto"></div>
+                    <input type="hidden" id="ipd-patient-id">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Encounter *</label>
+                    <select id="ipd-encounter-select" class="input-field"><option value="">Select patient first...</option></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Note Type *</label>
+                    <select id="ipd-note-type" class="input-field">
+                        <option value="progress">Progress Note</option>
+                        <option value="nursing">Nursing Note</option>
+                        <option value="discharge">Discharge Summary</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Note Content *</label>
+                    <textarea id="ipd-note-content" rows="4" class="input-field" placeholder="Subjective, Objective, Assessment, Plan..."></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button onclick="saveIPDNote()" class="btn-primary text-xs">Save Note</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-emerald p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Admitted Patients</h3>
+            </div>
+            <div class="space-y-3">
+                {% for a in unassigned_admissions %}
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900 text-sm">{{ a.patient.first_name }} {{ a.patient.last_name }}</p>
+                        <p class="text-xs text-slate-500">{{ a.admitting_diagnosis|default:"No diagnosis" }} | <span class="badge badge-warning text-[10px]">NO BED ASSIGNED</span></p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="assignBedToAdmission('{{ a.id }}')" class="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Assign Bed</button>
+                        <button onclick="dischargePatient('{{ a.id }}')" class="px-2 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg">Discharge</button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% for ward_name, ward_data in beds_by_ward.items %}
+                {% for bed in ward_data.beds %}
+                {% if bed.is_occupied and bed.admission %}
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900 text-sm">{{ bed.admission.patient_name }}</p>
+                        <p class="text-xs text-slate-500">{{ ward_name }} - {{ bed.room_number }} - {{ bed.bed_number }} | {{ bed.admission.diagnosis|default:"No diagnosis" }}</p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="transferPatient('{{ bed.admission.id }}', '{{ bed.id }}')" class="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Transfer</button>
+                        <button onclick="dischargePatient('{{ bed.admission.id }}')" class="px-2 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg">Discharge</button>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% empty %}
+                {% if not unassigned_admissions %}
+                <div class="text-center py-6 text-slate-400 text-xs">No admitted patients</div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function openAdmissionModal() {
+        let visits = [];
+        try { const res = await API.getVisits('?status=in_progress'); visits = res.results || res || []; } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient MRN or Name *</label>
+                    <input type="text" id="adm-patient-search" placeholder="Search patient by MRN or name..." class="input-field" oninput="searchAdmissionPatient(this.value)">
+                    <div id="adm-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="adm-patient-id">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Link to Visit (optional)</label>
+                    <input type="text" id="adm-visit-search" class="input-field" placeholder="Search visit by patient name or number..." oninput="filterIPDVisit(this.value)">
+                    <div id="adm-visit-results" class="mt-1 space-y-1 max-h-[150px] overflow-y-auto">
+                        ${visits.map(v => `<button type="button" class="w-full text-left p-2 bg-slate-50 hover:bg-primary/5 border border-slate-200 rounded-lg text-xs ipd-visit-btn" data-id="${v.id}" onclick="selectIPDVisit('${v.id}')"><span class="font-bold">${Utils.escapeHtml(v.patient_name || '')}</span> <span class="text-slate-400">${Utils.escapeHtml(v.visit_number || '')}</span></button>`).join('')}
+                    </div>
+                    <input type="hidden" id="adm-visit-id">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Diagnosis *</label>
+                    <input type="text" id="adm-diagnosis" class="input-field" placeholder="Primary diagnosis">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Assign Bed *</label>
+                    <select id="adm-bed-select" class="input-field">
+                        <option value="">Select a bed...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Notes</label>
+                    <textarea id="adm-notes" rows="2" class="input-field" placeholder="Admission notes..."></textarea>
+                </div>
+            </div>`;
+        Modal.show('New IPD Admission', bodyHTML, {
+            saveText: 'Admit Patient',
+            onSave: async () => {
+                const patientId = document.getElementById('adm-patient-id').value;
+                const bedId = document.getElementById('adm-bed-select').value;
+                const diagnosis = document.getElementById('adm-diagnosis').value.trim();
+                const notes = document.getElementById('adm-notes').value.trim();
+                const visitId = document.getElementById('adm-visit-id').value.trim();
+                if (!patientId) throw new Error('Please select a patient');
+                if (!bedId) throw new Error('Please select a bed');
+                if (!diagnosis) throw new Error('Please enter a diagnosis');
+                const data = { patient: patientId, bed: bedId, diagnosis, notes };
+                if (visitId) data.visit = visitId;
+                await API.createAdmission(data);
+                showToast('Patient admitted successfully!', 'success');
+                location.reload();
+            }
+        });
+        loadBedOptions();
+    }
+
+    async function loadBedOptions() {
+        try {
+            const beds = await API.getBeds('?is_occupied=false&is_active=true');
+            const select = document.getElementById('adm-bed-select');
+            const results = beds.results || beds || [];
+            results.forEach(bed => {
+                const opt = document.createElement('option');
+                opt.value = bed.id;
+                opt.textContent = `${bed.ward_name || ''} - ${bed.room_number || ''} - Bed ${bed.bed_number || ''}`;
+                select.appendChild(opt);
+            });
+        } catch (err) { console.error('Error loading beds:', err); }
+    }
+
+    async function searchAdmissionPatient(query) {
+        const resultsDiv = document.getElementById('adm-patient-results');
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = res.results || res || [];
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.slice(0, 5).forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('adm-patient-id').value = p.id;
+                    document.getElementById('adm-patient-search').value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    function filterIPDVisit(query) {
+        const q = query.toLowerCase();
+        document.querySelectorAll('.ipd-visit-btn').forEach(btn => {
+            btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    function selectIPDVisit(visitId) {
+        document.getElementById('adm-visit-id').value = visitId;
+        document.querySelectorAll('.ipd-visit-btn').forEach(btn => {
+            btn.classList.toggle('bg-primary/10', btn.dataset.id === visitId);
+            btn.classList.toggle('border-primary', btn.dataset.id === visitId);
+        });
+    }
+
+    async function assignBed(bedId) {
+        openAdmissionModal();
+        setTimeout(() => {
+            const select = document.getElementById('adm-bed-select');
+            if (select) select.value = bedId;
+        }, 300);
+    }
+
+    async function dischargePatient(admissionId) {
+        const defaultFollowUp = new Date();
+        defaultFollowUp.setDate(defaultFollowUp.getDate() + 7);
+        const defaultDate = defaultFollowUp.toISOString().slice(0, 10);
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Discharge Type *</label>' +
+            '<select id="discharge-type" class="input-field">' +
+            '<option value="routine">Routine</option>' +
+            '<option value="against_medical_advice">Against Medical Advice</option>' +
+            '<option value="referred">Referred</option>' +
+            '<option value="transferred">Transferred</option>' +
+            '<option value="deceased">Deceased</option>' +
+            '</select>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Discharge Summary *</label>' +
+            '<textarea id="discharge-summary" rows="3" class="input-field" placeholder="Diagnosis, treatment course, follow-up instructions..."></textarea>' +
+            '</div>' +
+            '<div class="border-t border-slate-100 pt-3">' +
+            '<label class="flex items-center gap-2 cursor-pointer mb-2">' +
+            '<input type="checkbox" id="schedule-followup" class="rounded border-slate-300" onchange="document.getElementById(\'followup-fields\').style.display = this.checked ? \'\' : \'none\'">' +
+            '<span class="text-xs font-bold text-slate-700">Schedule Follow-up Appointment</span>' +
+            '</label>' +
+            '<div id="followup-fields" style="display:none;" class="space-y-3 pl-6">' +
+            '<div><label class="block text-[11px] font-bold text-slate-600 mb-1">Follow-up Date *</label>' +
+            '<input type="date" id="followup-date" class="input-field" value="' + defaultDate + '"></div>' +
+            '<div><label class="block text-[11px] font-bold text-slate-600 mb-1">Reason</label>' +
+            '<input type="text" id="followup-reason" class="input-field" placeholder="e.g. Post-discharge review"></div>' +
+            '</div></div></div>';
+        Modal.show('Discharge Patient', bodyHTML, {
+            saveText: 'Confirm Discharge',
+            onSave: async () => {
+                var dischargeType = document.getElementById('discharge-type').value;
+                var dischargeSummary = document.getElementById('discharge-summary').value.trim();
+                if (!dischargeSummary) { showToast('Discharge summary is required', 'error'); return; }
+                var admission = null;
+                try {
+                    admission = await API.getAdmission(admissionId);
+                } catch (e) { /* continue anyway */ }
+                var patientId = admission ? admission.patient : null;
+                var visitId = admission ? admission.visit : null;
+                await API.dischargePatient(admissionId, { discharge_type: dischargeType, discharge_summary: dischargeSummary });
+                if (document.getElementById('schedule-followup').checked) {
+                    var followupDate = document.getElementById('followup-date').value;
+                    if (followupDate && patientId) {
+                        try {
+                            await API.post('/clinical/appointments/', {
+                                patient: patientId,
+                                appointment_date: followupDate,
+                                appointment_time: '09:00',
+                                duration_minutes: 30,
+                                appointment_type: 'follow_up',
+                                reason: document.getElementById('followup-reason').value.trim() || 'Post-discharge follow-up',
+                                linked_visit: visitId || null,
+                                status: 'scheduled',
+                            });
+                            showToast('Follow-up appointment scheduled!', 'success');
+                        } catch (e) {
+                            showToast('Discharged but follow-up scheduling failed: ' + (e.message || e), 'warning');
+                        }
+                    } else if (!patientId) {
+                        showToast('Could not load patient data. Follow-up not scheduled.', 'warning');
+                    }
+                }
+                showToast('Patient discharged successfully!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function openWardModal() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Ward Name *</label><input type="text" id="ward-name" class="input-field" placeholder="e.g. Maternity Ward"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Department *</label><input type="text" id="ward-department" class="input-field" placeholder="e.g. OBGYN"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Floor</label><input type="text" id="ward-floor" class="input-field" placeholder="e.g. 2"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Capacity</label><input type="number" id="ward-capacity" class="input-field" placeholder="e.g. 20" min="1"></div>
+            </div>`;
+        Modal.show('Add New Ward', bodyHTML, {
+            saveText: 'Create Ward',
+            onSave: async () => {
+                const name = document.getElementById('ward-name').value.trim();
+                const department = document.getElementById('ward-department').value.trim();
+                const floor = document.getElementById('ward-floor').value.trim();
+                const capacity = document.getElementById('ward-capacity').value.trim();
+                if (!name) { showToast('Ward name is required', 'error'); return; }
+                await API.post('/clinical/wards/', { name, department, floor: floor || null, capacity: capacity ? parseInt(capacity) : null });
+                showToast('Ward created!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function openBedModal() {
+        let wards = [];
+        try { const res = await API.getWards(); wards = res.results || res || []; } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Ward *</label><select id="bed-ward-select" class="input-field"><option value="">Select ward...</option>${wards.map(w => `<option value="${w.id}">${Utils.escapeHtml(w.name)}</option>`).join('')}</select></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Room Number *</label><input type="text" id="bed-room" class="input-field" placeholder="e.g. R-101"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Bed Number *</label><input type="text" id="bed-number" class="input-field" placeholder="e.g. B1"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Bed Type</label><select id="bed-type" class="input-field"><option value="general">General</option><option value="icu">ICU</option><option value="isolation">Isolation</option><option value="maternity">Maternity</option><option value="pediatric">Pediatric</option></select></div>
+            </div>`;
+        Modal.show('Add New Bed', bodyHTML, {
+            saveText: 'Create Bed',
+            onSave: async () => {
+                const wardId = document.getElementById('bed-ward-select').value;
+                const roomNumber = document.getElementById('bed-room').value.trim();
+                const bedNumber = document.getElementById('bed-number').value.trim();
+                const bedType = document.getElementById('bed-type').value;
+                if (!wardId || !roomNumber || !bedNumber) { showToast('Ward, room, and bed number required', 'error'); return; }
+                await API.post('/clinical/beds/', { ward: wardId, room_number: roomNumber, bed_number: bedNumber, bed_type: bedType });
+                showToast('Bed created!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function openEditBedModal(bedId) {
+        let bed = null;
+        try { const res = await API.request('GET', `/clinical/beds/${bedId}/`); bed = res; } catch(e) { showToast('Bed not found', 'error'); return; }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Bed Number *</label><input type="text" id="edit-bed-number" class="input-field" value="${Utils.escapeHtml(bed.bed_number || '')}"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Bed Type</label><select id="edit-bed-type" class="input-field">${['general','icu','isolation','maternity','pediatric','standard'].map(t => `<option value="${t}" ${bed.bed_type === t ? 'selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select></div>
+            </div>`;
+        Modal.show('Edit Bed', bodyHTML, {
+            saveText: 'Update Bed',
+            onSave: async () => {
+                const bedNumber = document.getElementById('edit-bed-number').value.trim();
+                const bedType = document.getElementById('edit-bed-type').value;
+                if (!bedNumber) { showToast('Bed number required', 'error'); return; }
+                await API.patch(`/clinical/beds/${bedId}/`, { bed_number: bedNumber, bed_type: bedType });
+                showToast('Bed updated!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function deleteBed(bedId) {
+        Modal.confirm('Delete Bed', 'Are you sure?', async () => {
+            await API.delete(`/clinical/beds/${bedId}/`);
+            showToast('Bed deleted!', 'success');
+            location.reload();
+        });
+    }
+
+    async function openEditWardModal(wardId) {
+        if (!wardId) { showToast('Ward ID not found', 'error'); return; }
+        let ward = null;
+        try { const res = await API.request('GET', `/clinical/wards/${wardId}/`); ward = res; } catch(e) { showToast('Ward not found', 'error'); return; }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Ward Name *</label><input type="text" id="edit-ward-name" class="input-field" value="${Utils.escapeHtml(ward.name)}"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Floor</label><input type="text" id="edit-ward-floor" class="input-field" value="${Utils.escapeHtml(ward.floor || '')}"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Capacity</label><input type="number" id="edit-ward-capacity" class="input-field" value="${ward.capacity || ''}" min="1"></div>
+            </div>`;
+        Modal.show('Edit Ward', bodyHTML, {
+            saveText: 'Update Ward',
+            onSave: async () => {
+                const name = document.getElementById('edit-ward-name').value.trim();
+                const floor = document.getElementById('edit-ward-floor').value.trim();
+                const capacity = document.getElementById('edit-ward-capacity').value.trim();
+                if (!name) { showToast('Ward name required', 'error'); return; }
+                await API.patch(`/clinical/wards/${wardId}/`, { name, floor: floor || null, capacity: capacity ? parseInt(capacity) : null });
+                showToast('Ward updated!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function deleteWard(wardId) {
+        if (!wardId) { showToast('Ward ID not found', 'error'); return; }
+        Modal.confirm('Delete Ward', 'All rooms and beds in this ward will be removed.', async () => {
+            await API.delete(`/clinical/wards/${wardId}/`);
+            showToast('Ward deleted!', 'success');
+            location.reload();
+        });
+    }
+
+    async function searchIPDPatient(query) {
+        const resultsDiv = document.getElementById('ipd-patient-results');
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = async () => {
+                    document.getElementById('ipd-patient-id').value = p.id;
+                    document.getElementById('ipd-patient-search').value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                    const encSel = document.getElementById('ipd-encounter-select');
+                    encSel.innerHTML = '<option value="">Loading encounters...</option>';
+                    try {
+                        const visits = await API.getVisits(`?patient=${p.id}`);
+                        const visitList = visits.results || visits || [];
+                        let allEncounters = [];
+                        for (const v of visitList) {
+                            const encs = await API.getEncounters(v.id);
+                            const encList = encs.results || encs || [];
+                            allEncounters = allEncounters.concat(encList.map(e => ({ ...e, visit_id: v.id, patient_name: `${p.first_name} ${p.last_name}` })));
+                        }
+                        encSel.innerHTML = '<option value="">Select encounter...</option>';
+                        allEncounters.forEach(e => {
+                            const opt = document.createElement('option');
+                            opt.value = e.id;
+                            opt.textContent = `${e.visit_id ? 'Visit' : 'Encounter'} - ${(e.created_at || '').substring(0, 10)}`;
+                            opt.dataset.visitId = e.visit_id;
+                            opt.dataset.patientId = p.id;
+                            encSel.appendChild(opt);
+                        });
+                        if (allEncounters.length === 0) encSel.innerHTML = '<option value="">No encounters found</option>';
+                    } catch (err) {
+                        encSel.innerHTML = '<option value="">Error loading encounters</option>';
+                    }
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    async function saveIPDNote() {
+        const encounterId = document.getElementById('ipd-encounter-select').value;
+        const noteType = document.getElementById('ipd-note-type').value;
+        const noteContent = document.getElementById('ipd-note-content').value.trim();
+        if (!encounterId) { showToast('Please select an encounter', 'error'); return; }
+        if (!noteContent) { showToast('Please enter note content', 'error'); return; }
+        const encSelect = document.getElementById('ipd-encounter-select');
+        const selectedOpt = encSelect.options[encSelect.selectedIndex];
+        const visitId = selectedOpt ? selectedOpt.dataset.visitId : '';
+        const patientId = document.getElementById('ipd-patient-id').value;
+        try {
+            await API.createProgressNote(encounterId, {
+                note_type: noteType,
+                note_text: noteContent,
+                patient: patientId,
+                visit: visitId
+            });
+            showToast('Note saved successfully!', 'success');
+            document.getElementById('ipd-note-content').value = '';
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    async function transferPatient(admissionId, currentBedId) {
+        let beds = [];
+        try {
+            const res = await API.getBeds('?is_occupied=false&is_active=true');
+            beds = (res.results || res || []).filter(b => b.id !== currentBedId);
+        } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Transfer To Bed *</label>
+                    <select id="transfer-bed" class="input-field">
+                        <option value="">Select bed...</option>
+                        ${beds.map(b => `<option value="${b.id}">${Utils.escapeHtml(b.ward_name || '')} - ${b.room_number || ''} - Bed ${b.bed_number || ''}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Reason *</label>
+                    <textarea id="transfer-reason" rows="2" class="input-field" placeholder="Reason for transfer..."></textarea>
+                </div>
+            </div>`;
+        Modal.show('Transfer Patient', bodyHTML, {
+            saveText: 'Confirm Transfer',
+            onSave: async () => {
+                const toBedId = document.getElementById('transfer-bed').value;
+                const reason = document.getElementById('transfer-reason').value.trim();
+                if (!toBedId) { showToast('Please select a bed', 'error'); return; }
+                if (!reason) { showToast('Please enter a reason', 'error'); return; }
+                await API.post(`/clinical/admissions/${admissionId}/transfers/`, {
+                    to_bed: toBedId,
+                    transfer_reason: reason
+                });
+                showToast('Patient transferred successfully!', 'success');
+                location.reload();
+            }
+        });
+    }
+
+    async function assignBedToAdmission(admissionId) {
+        let beds = [];
+        try {
+            const res = await API.getBeds('?is_occupied=false&is_active=true');
+            beds = res.results || res || [];
+        } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Select Bed *</label>
+                    <select id="assign-bed" class="input-field">
+                        <option value="">Select bed...</option>
+                        ${beds.map(b => `<option value="${b.id}">${Utils.escapeHtml(b.ward_name || '')} - ${b.room_number || ''} - Bed ${b.bed_number || ''}</option>`).join('')}
+                    </select>
+                </div>
+            </div>`;
+        Modal.show('Assign Bed to Patient', bodyHTML, {
+            saveText: 'Assign Bed',
+            onSave: async () => {
+                const bedId = document.getElementById('assign-bed').value;
+                if (!bedId) { showToast('Please select a bed', 'error'); return; }
+                await API.patch(`/clinical/admissions/${admissionId}/`, { bed: bedId });
+                showToast('Bed assigned successfully!', 'success');
+                location.reload();
+            }
+        });
+    }
+</script>
+{% endblock %}

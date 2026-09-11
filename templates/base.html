@@ -1,0 +1,426 @@
+{% load static %}
+{% load rbac_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ hospital_name|default:"JFD Hospital HMS" }}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false
+            },
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#3b82f6', dark: '#2563eb', light: '#60a5fa' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="min-h-screen">
+
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity"></div>
+
+    <div class="flex h-screen p-3 lg:p-4 gap-4 overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="app-sidebar" class="no-print sidebar-wpos flex flex-col z-50 fixed lg:relative inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-all duration-300 w-64 h-[calc(100vh-1.5rem)] my-3 ml-3 lg:ml-0 flex-shrink-0 overflow-y-auto custom-scrollbar">
+            
+            <!-- Logo -->
+            <div class="p-5 pb-6">
+                <div class="flex items-center gap-3">
+                    {% if hospital_logo_url %}
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0">
+                        <img src="{{ hospital_logo_url }}" alt="{{ hospital_name }}" class="max-w-full max-h-full object-contain">
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h1 class="font-bold text-base text-white leading-none">{{ hospital_short_name|default:"JFD Hospital" }}</h1>
+                        <p class="text-[10px] text-white/60 mt-0.5">{{ hospital_tagline|default:"Hospital Management Information System" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-3 space-y-1">
+                <a href="/" class="sidebar-link-wpos {% if request.path == '/' %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span>Dashboard</span>
+                </a>
+                {% user_has_permission "PATIENT_CREATE" as can_create_patient %}
+                {% if can_create_patient %}
+                <a href="/patients/register/" class="sidebar-link-wpos {% if '/patients/register' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    <span>Register Patient</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "PATIENT_VIEW" as can_view_patient %}
+                {% if can_view_patient %}
+                <a href="/patients/search/" class="sidebar-link-wpos {% if '/patients/search' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span>Search Patients</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "ENCOUNTER_VIEW" as can_view_encounter %}
+                {% if can_view_encounter %}
+                <a href="/clinical/appointments/" class="sidebar-link-wpos {% if '/clinical/appointments' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>Appointments</span>
+                </a>
+                <a href="/clinical/follow-up-queue/" class="sidebar-link-wpos {% if '/follow-up-queue' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Follow-Up Queue</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "TRIAGE_PERFORM" as can_triage %}
+                {% if can_triage %}
+                <a href="/clinical/triage/" class="sidebar-link-wpos {% if '/clinical/triage' in request.path and '/triage-pending' not in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>Triage</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "PATIENT_CREATE" as can_create_patient %}
+                {% if can_create_patient %}
+                <a href="/clinical/triage-pending/" class="sidebar-link-wpos {% if '/triage-pending' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Triage Queue</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "ENCOUNTER_EDIT" as can_edit_encounter %}
+                {% if can_edit_encounter %}
+                <a href="/opd/" class="sidebar-link-wpos {% if '/opd' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <span>OPD Consultation</span>
+                </a>
+                {% endif %}
+                {% if can_view_encounter %}
+                <a href="/clinical/ipd/" class="sidebar-link-wpos {% if '/clinical/ipd' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <span>IPD / Beds</span>
+                </a>
+                <a href="/clinical/emergency/" class="sidebar-link-wpos {% if '/clinical/emergency' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span>Emergency Room</span>
+                </a>
+                <a href="/clinical/er-evaluation/" class="sidebar-link-wpos {% if '/clinical/er-evaluation' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>ER Nurse Evaluation</span>
+                </a>
+                <a href="/clinical/pediatric/" class="sidebar-link-wpos {% if '/clinical/pediatric' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <span>Pediatric Assessment</span>
+                </a>
+                <a href="/clinical/nurse-notes/" class="sidebar-link-wpos {% if '/clinical/nurse-notes' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <span>Nurse Notes</span>
+                </a>
+                <a href="/clinical/obgyn/" class="sidebar-link-wpos {% if '/clinical/obgyn' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                    <span>OBGYN</span>
+                </a>
+                <a href="/clinical/surgery/" class="sidebar-link-wpos {% if '/clinical/surgery' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
+                    <span>Surgery</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "ORDER_VIEW" as can_view_order %}
+                {% if can_view_order %}
+                <a href="/clinical/diagnostics/" class="sidebar-link-wpos {% if '/clinical/diagnostics' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <span>Diagnostics</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "RX_VIEW" as can_view_rx %}
+                {% if can_view_rx %}
+                <a href="/pharmacy/dispensing/" class="sidebar-link-wpos {% if '/pharmacy' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <span>Pharmacy</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "INVOICE_VIEW" as can_view_invoice %}
+                {% if can_view_invoice %}
+                <a href="/cashier/" class="sidebar-link-wpos {% if '/cashier' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span>Billing / Cashier</span>
+                </a>
+                <a href="/cashier/payment-history/" class="sidebar-link-wpos {% if '/payment-history' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <span>Payment History</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "INVENTORY_VIEW" as can_view_inv %}
+                {% if can_view_inv %}
+                <a href="/inventory/" class="sidebar-link-wpos {% if request.path == '/inventory/' %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <span>Inventory</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "INVENTORY_MANAGE" as can_manage_inv %}
+                {% if can_manage_inv %}
+                <a href="/inventory/manage/" class="sidebar-link-wpos {% if '/inventory/manage' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span>Manage Items</span>
+                </a>
+                {% endif %}
+                {% user_has_permission "REPORT_VIEW" as can_view_report %}
+                {% if can_view_report %}
+                <a href="/reports/hmis/" class="sidebar-link-wpos {% if '/reports' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span>Reports / HMIS</span>
+                </a>
+                {% endif %}
+
+                {% user_has_role "ADMIN" as is_admin %}
+                {% if is_admin %}
+                <div class="pt-4 pb-1">
+                    <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 mb-2">Administration</p>
+                </div>
+                <a href="/admin/users/" class="sidebar-link-wpos {% if '/admin/users' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <span>Users & Roles</span>
+                </a>
+                <a href="/admin/roles/" class="sidebar-link-wpos {% if '/admin/roles' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <span>Role Management</span>
+                </a>
+                <a href="/admin/departments/" class="sidebar-link-wpos {% if '/admin/departments' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <span>Departments</span>
+                </a>
+                <a href="/admin/audit/" class="sidebar-link-wpos {% if '/admin/audit' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <span>Audit Trail</span>
+                </a>
+                <a href="/admin/login-history/" class="sidebar-link-wpos {% if '/admin/login-history' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Login History</span>
+                </a>
+                <a href="/admin/triage-criteria/" class="sidebar-link-wpos {% if '/admin/triage-criteria' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    <span>Triage Criteria</span>
+                </a>
+                <a href="/admin/settings/" class="sidebar-link-wpos {% if '/admin/settings' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span>Hospital Settings</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Bottom -->
+            <div class="p-3 mt-auto">
+                <div class="p-4 bg-white/10 rounded-xl text-center">
+                    <p class="text-[10px] text-white/60 mb-2">Need help?</p>
+                    <a href="#" class="text-xs font-semibold text-white hover:text-white/80">Contact Support</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Toggle -->
+        <button onclick="toggleDesktopSidebar()" class="hidden lg:flex fixed lg:absolute left-[268px] lg:left-[268px] top-1/2 -translate-y-1/2 z-50 w-5 h-10 bg-[var(--navy-800)] border border-white/10 rounded-r-lg items-center justify-center shadow-sm hover:bg-[var(--navy-700)] transition-all" id="sidebar-toggle-btn">
+            <svg class="w-3 h-3 text-white/60" id="sidebar-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 app-shell overflow-hidden">
+            
+            <!-- Header -->
+            <header class="no-print px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">{% block page_title %}Dashboard{% endblock %}</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div id="notification-bell" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors relative" onclick="toggleNotifDropdown()">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                            <span id="bell-count" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">0</span>
+                        </div>
+                        <div id="notif-dropdown" class="hidden absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 max-h-[400px] overflow-y-auto">
+                            <div class="px-4 py-2 border-b border-slate-100">
+                                <p class="text-sm font-bold text-slate-900">Notifications</p>
+                            </div>
+                            <div id="notif-list" class="divide-y divide-slate-50">
+                                <div class="px-4 py-3 text-xs text-slate-400 text-center">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button onclick="document.getElementById('user-menu').classList.toggle('hidden')" class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-sm font-semibold hover:bg-primary-dark transition-colors">
+                            {{ request.user.first_name|first|default:"U" }}
+                        </button>
+                        <div id="user-menu" class="hidden absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                            <div class="px-4 py-2 border-b border-slate-100">
+                                <p class="text-sm font-bold text-slate-900">{{ request.user.get_full_name|default:request.user.username }}</p>
+                                <p class="text-[11px] text-slate-500">{{ request.user.username }}</p>
+                            </div>
+                            <a href="/admin/profile/" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                My Profile
+                            </a>
+                            <a href="/logout/" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Toast -->
+            <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3"></div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let sidebarCollapsed = false;
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function toggleDesktopSidebar() {
+            const sidebar = document.getElementById('app-sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle-btn');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.classList.add('lg:w-0', 'lg:p-0', 'lg:overflow-hidden');
+                sidebar.classList.remove('w-64');
+                toggleBtn.classList.add('lg:left-0');
+                toggleBtn.classList.remove('lg:left-[268px]');
+                toggleIcon.style.transform = 'rotate(180deg)';
+            } else {
+                sidebar.classList.remove('lg:w-0', 'lg:p-0', 'lg:overflow-hidden');
+                sidebar.classList.add('w-64');
+                toggleBtn.classList.remove('lg:left-0');
+                toggleBtn.classList.add('lg:left-[268px]');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const colors = { success: 'bg-emerald-600', error: 'bg-red-600', warning: 'bg-amber-500', info: 'bg-primary' };
+            toast.className = `${colors[type] || colors.info} text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 min-w-[280px] animate-slide-in`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(40px)'; setTimeout(() => toast.remove(), 300); }, 3500);
+        }
+
+        {% if messages %}
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+            showToast('{{ message|escapejs }}', '{{ message.tags }}');
+            {% endfor %}
+        });
+        {% endif %}
+
+        // Notification Bell System
+        function toggleNotifDropdown() {
+            const dropdown = document.getElementById('notif-dropdown');
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                loadTaskCounts();
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const bell = document.getElementById('notification-bell');
+            const dropdown = document.getElementById('notif-dropdown');
+            if (bell && dropdown && !bell.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        const taskLinks = {
+            triage_queue: { label: 'patients waiting for triage', url: '/clinical/triage/', icon: 'triage' },
+            pending_visits: { label: 'active consultations', url: '/opd/', icon: 'opd' },
+            pending_prescriptions: { label: 'prescriptions to dispense', url: '/pharmacy/dispensing/', icon: 'pharmacy' },
+            pending_invoices: { label: 'unpaid invoices', url: '/cashier/', icon: 'billing' },
+            pending_orders: { label: 'pending lab orders', url: '/clinical/diagnostics/', icon: 'diagnostics' },
+            low_stock_items: { label: 'low stock alerts', url: '/inventory/', icon: 'inventory' },
+        };
+
+        const iconSVGs = {
+            triage: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
+            opd: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>',
+            pharmacy: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>',
+            billing: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>',
+            diagnostics: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>',
+            inventory: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>',
+        };
+
+        async function loadTaskCounts() {
+            try {
+                const res = await fetch('/api/auth/task-counts/', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                const counts = await res.json();
+                const total = Object.values(counts).reduce((a, b) => a + b, 0);
+                const countEl = document.getElementById('bell-count');
+                const bellEl = document.getElementById('notification-bell');
+                if (total > 0) {
+                    countEl.textContent = total > 99 ? '99+' : total;
+                    countEl.classList.remove('hidden');
+                    bellEl.classList.add('animate-pulse');
+                } else {
+                    countEl.classList.add('hidden');
+                    bellEl.classList.remove('animate-pulse');
+                }
+                const listEl = document.getElementById('notif-list');
+                listEl.innerHTML = '';
+                let hasItems = false;
+                for (const [key, info] of Object.entries(taskLinks)) {
+                    const count = counts[key] || 0;
+                    if (count > 0) {
+                        hasItems = true;
+                        listEl.innerHTML += `
+                            <a href="${info.url}" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">${iconSVGs[info.icon] || ''}</div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-slate-900">${count} ${info.label}</p>
+                                </div>
+                                <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </a>`;
+                    }
+                }
+                if (!hasItems) {
+                    listEl.innerHTML = '<div class="px-4 py-6 text-center"><p class="text-sm text-slate-400">No pending tasks</p></div>';
+                }
+            } catch (err) { console.error('Failed to load task counts:', err); }
+        }
+
+        loadTaskCounts();
+        setInterval(loadTaskCounts, 30000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

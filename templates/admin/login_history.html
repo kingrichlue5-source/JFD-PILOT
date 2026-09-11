@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load export_tags %}
+{% block title %}Login History - JFD Hospital HMS{% endblock %}
+{% block page_title %}Login History{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today's Logins</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ today_logins }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today's Failed</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ today_failed }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Unique Users Today</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ unique_users_today }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">Login Activity ({{ total }} entries)</h3>
+            {% export_buttons "audit" %}
+            <div class="flex items-center gap-2">
+                <input type="text" id="login-search" placeholder="Search username, IP..." class="input-field text-xs w-48" oninput="filterLoginTable()">
+                <select id="login-status-filter" class="input-field text-xs w-32" onchange="filterLoginTable()">
+                    <option value="">All Status</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-slate-100">
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Timestamp</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Username</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">IP Address</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Status</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Logout</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Failure Reason</th>
+                    </tr>
+                </thead>
+                <tbody id="login-table-body">
+                    {% for log in logs %}
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                        <td class="py-3 px-4 text-slate-500 whitespace-nowrap">{{ log.login_at|date:"M d, Y H:i:s" }}</td>
+                        <td class="py-3 px-4">
+                            <span class="font-bold text-slate-900">{{ log.username }}</span>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-slate-600">{{ log.ip_address|default:"-" }}</td>
+                        <td class="py-3 px-4">
+                            {% if log.success %}
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Success</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-500">{{ log.logout_at|date:"M d, Y H:i:s"|default:"-" }}</td>
+                        <td class="py-3 px-4 text-slate-500">{{ log.failure_reason|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="py-8 text-center text-slate-400">No login entries found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
+            {% if page > 1 %}
+            <a href="?page={{ page|add:"-1" }}&username={{ username_filter }}&success={{ success_filter }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200">Previous</a>
+            {% endif %}
+            <span class="text-xs text-slate-500">Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+            <a href="?page={{ page|add:"1" }}&username={{ username_filter }}&success={{ success_filter }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function debounce(fn, ms) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+function filterLoginTable() {
+    const query = document.getElementById('login-search').value.toLowerCase();
+    const statusFilter = document.getElementById('login-status-filter').value.toLowerCase();
+    const rows = document.querySelectorAll('#login-table-body tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const matchesSearch = !query || text.includes(query);
+        const matchesStatus = !statusFilter || text.includes(statusFilter);
+        const show = matchesSearch && matchesStatus;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+}
+</script>
+{% endblock %}

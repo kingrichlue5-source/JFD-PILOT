@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Hospital Settings - JFD Hospital HMS{% endblock %}
+{% block page_title %}Hospital Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter max-w-4xl">
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">Branding &amp; Hospital Information</h3>
+        </div>
+
+        {% if has_logo %}
+        <div class="mt-6 p-5 bg-slate-50 rounded-xl border border-slate-100 flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-32 h-32 bg-white rounded-xl shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden p-2">
+                <img src="{{ hospital_logo_url }}" alt="{{ hospital_name }}" class="max-w-full max-h-full object-contain">
+            </div>
+            <div class="flex-1 text-center sm:text-left">
+                <p class="text-sm font-bold text-slate-900">{{ hospital_name }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">Current logo displayed on your login page and application sidebar.</p>
+                <p class="text-xs text-slate-400 mt-1">Last updated by: {{ setting.updated_by|default:"-" }}</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-200">
+            <p class="text-sm font-bold text-amber-800">No logo uploaded yet</p>
+            <p class="text-xs text-amber-700 mt-1">Upload your hospital logo below so it appears on the login page and inside the application.</p>
+        </div>
+        {% endif %}
+
+        {% if form.errors %}
+        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium">
+            {% for field in form %}{% for error in field.errors %}<p>{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Hospital Name *</label>
+                    {{ form.hospital_name }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Short Name *</label>
+                    {{ form.short_name }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Tagline</label>
+                {{ form.tagline }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Hospital Logo</label>
+                {{ form.logo }}
+                <p class="text-[11px] text-slate-400 mt-1">PNG, JPG or SVG. Recommended square or landscape. Will replace the current logo.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Phone</label>
+                    {{ form.phone }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Email</label>
+                    {{ form.email }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Website</label>
+                {{ form.website }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Address</label>
+                {{ form.address }}
+            </div>
+
+            <div class="border-t border-slate-100 pt-5 mt-2">
+                <h4 class="font-bold text-slate-900 text-sm section-header-gradient px-3 py-1 rounded-lg inline-block mb-4">Financial Settings</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Registration Fee ($)</label>
+                        {{ form.registration_fee }}
+                        <p class="text-[11px] text-slate-400 mt-1">Charged to each patient at registration. Updates the REG service item price.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Follow-Up Window (days)</label>
+                        {{ form.followup_window_days }}
+                        <p class="text-[11px] text-slate-400 mt-1">Days before/after scheduled date considered "inside window" on the Follow-Up Queue.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="btn-primary">Save Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

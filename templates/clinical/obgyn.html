@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% load export_tags %}
+
+{% block title %}OBGYN & Maternal Care - JFD Hospital HMS{% endblock %}
+{% block page_title %}OBGYN & Maternal Health Suite{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon pink">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">ANC Patients</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-anc">-</h3>
+                <span class="badge badge-info text-[10px]">Active</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Active Labor</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-labor">-</h3>
+                <span class="badge badge-warning text-[10px]">In Progress</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Deliveries (Month)</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-deliveries">-</h3>
+                <span class="badge badge-success text-[10px]">Completed</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Postnatal</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-postnatal">-</h3>
+                <span class="badge badge-info text-[10px]">Follow-ups</span>
+            </div>
+        </div>
+    </div>
+
+    {% export_buttons "obgyn" %}
+
+    <div class="glass-card accent-pink p-5 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+            <h3 class="font-bold text-white text-base">Maternity Ward Beds</h3>
+            <span class="text-[10px] font-bold text-pink-100" id="maternity-bed-summary">Loading...</span>
+        </div>
+        <div id="maternity-beds" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="text-center py-4 text-slate-400 text-xs col-span-full">Loading maternity beds...</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card accent-pink p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Antenatal Care (ANC) Register</h3>
+                <button onclick="openANCForm()" class="btn-primary text-xs">+ New ANC Visit</button>
+            </div>
+            <div id="anc-list" class="space-y-3 overflow-y-auto max-h-[350px]">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading ANC visits...</div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-purple p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Active Labor & Delivery Monitor</h3>
+                <button onclick="openLaborForm()" class="btn-primary text-xs">+ Record Labor</button>
+            </div>
+            <div id="labor-list" class="space-y-3">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading labor records...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-emerald p-6 space-y-5">
+        <div class="section-header-gradient rounded-xl px-5 py-4 flex items-center justify-between">
+            <h3 class="font-bold text-white text-base">Delivery Outcome & Newborn APGAR Score Recorder</h3>
+            <button onclick="openBirthRecordForm()" class="btn-primary text-xs">+ Record Birth</button>
+        </div>
+        <form onsubmit="saveDeliveryOutcome(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Mode of Delivery</label>
+                <select id="delivery-mode" class="input-field">
+                    <option value="svd">Spontaneous Vaginal Delivery (SVD)</option>
+                    <option value="cs">Cesarean Section (C/S)</option>
+                    <option value="vacuum">Assisted Vacuum Delivery</option>
+                    <option value="forceps">Assisted Forceps Delivery</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Newborn Sex</label>
+                <select id="delivery-sex" class="input-field">
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Birth Weight (kg)</label>
+                <input type="number" step="0.01" id="delivery-weight" value="3.20" class="input-field">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">APGAR (1 min / 5 min)</label>
+                <div class="flex gap-2">
+                    <input type="number" min="0" max="10" id="apgar-1" value="8" class="input-field">
+                    <input type="number" min="0" max="10" id="apgar-5" value="9" class="input-field">
+                </div>
+            </div>
+            <div class="sm:col-span-4 flex justify-end">
+                <button type="submit" class="btn-primary text-xs">Save Delivery Outcome</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="glass-card accent-emerald p-5 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+            <h3 class="font-bold text-white text-base">Postnatal Care Register</h3>
+            <button onclick="openPostnatalForm()" class="btn-primary text-xs">+ New Postnatal Visit</button>
+        </div>
+        <div id="postnatal-list" class="space-y-3">
+            <div class="text-center py-6 text-slate-400 text-xs">Loading...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadOBGYNData() {
+        let anc = [], labor = [], deliveries = [], postnatal = [];
+        try { const r = await API.getAntenatalVisits(); anc = r.results || r || []; } catch(e) { console.error('ANC error:', e); }
+        try { const r = await API.getLaborRecords(); labor = r.results || r || []; } catch(e) { console.error('Labor error:', e); }
+        try { const r = await API.getDeliveryRecords(); deliveries = r.results || r || []; } catch(e) { console.error('Delivery error:', e); }
+        try { const r = await API.getPostnatalVisits(); postnatal = r.results || r || []; } catch(e) { console.error('Postnatal error:', e); }
+
+        document.getElementById('stat-anc').textContent = anc.length;
+        document.getElementById('stat-labor').textContent = labor.filter(l => l.status === 'in_progress').length;
+        document.getElementById('stat-deliveries').textContent = deliveries.length;
+        document.getElementById('stat-postnatal').textContent = postnatal.length;
+
+        window.allANC = anc;
+        window.allLabor = labor;
+
+        renderANCList(anc);
+        renderLaborList(labor);
+        renderPostnatalList(postnatal);
+    }
+
+    function renderANCList(anc) {
+        const container = document.getElementById('anc-list');
+        if (anc.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No ANC visits recorded</div>';
+            return;
+        }
+        container.innerHTML = '';
+        anc.forEach(v => {
+            const card = document.createElement('div');
+            card.className = 'p-4 bg-pink-50/60 border border-pink-100 rounded-xl';
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(v.patient_name || '')}</span>
+                    <span class="badge badge-info text-[10px]">G${v.gravida || '?'}P${v.parity || '?'} - ${v.ga_weeks || '?'} weeks</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Visit #${v.visit_number || '?'} - FHR: ${v.fetal_heart_rate || '-'} BPM - BP: ${v.blood_pressure_systolic || '-'}/${v.blood_pressure_diastolic || '-'} - Weight: ${v.weight || '-'}kg</p>
+                <div class="mt-2 flex gap-2">
+                    <button onclick="recordANCVisit('${v.id}')" class="text-xs font-bold text-pink-700 hover:underline">Record Visit</button>
+                </div>`;
+            container.appendChild(card);
+        });
+    }
+
+    function renderLaborList(labor) {
+        const container = document.getElementById('labor-list');
+        if (labor.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No active labor records</div>';
+            return;
+        }
+        container.innerHTML = '';
+        labor.forEach(l => {
+            const card = document.createElement('div');
+            const isActive = l.status === 'in_progress';
+            card.className = `p-4 rounded-xl border ${isActive ? 'bg-purple-50/60 border-purple-200' : 'bg-slate-50 border-slate-200'}`;
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(l.patient_name || '')}</span>
+                    <span class="badge ${isActive ? 'badge-warning' : 'badge-success'} text-[10px]">${l.status || 'unknown'}</span>
+                </div>
+                <div class="mt-2 flex gap-2">
+                    <button onclick="recordDelivery('${l.id}')" class="btn-primary text-xs">Record Delivery</button>
+                </div>`;
+            container.appendChild(card);
+        });
+    }
+
+    function renderPostnatalList(postnatal) {
+        const container = document.getElementById('postnatal-list');
+        if (!container) return;
+        if (postnatal.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No postnatal visits recorded</div>';
+            return;
+        }
+        container.innerHTML = '';
+        postnatal.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'p-4 bg-green-50/60 border border-green-100 rounded-xl';
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(p.patient_name || p.patient_mrn || '')}</span>
+                    <span class="badge badge-success text-[10px]">Day ${p.visit_day_postpartum || '?'} Postpartum</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">BP: ${p.blood_pressure_systolic || '-'}/${p.blood_pressure_diastolic || '-'} | Temp: ${p.temperature || '-'} | Fundal: ${p.fundal_height || '-'}</p>
+                <p class="text-xs text-slate-500">Baby: ${p.baby_weight || '-'}kg | Feeding: ${p.feeding_method || '-'}</p>`;
+            container.appendChild(card);
+        });
+    }
+
+    function openANCForm() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="anc-patient-search" placeholder="Search patient..." class="input-field" oninput="searchPatient('anc', this.value)">
+                    <div id="anc-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="anc-patient-id">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">LMP Date *</label><input type="date" id="anc-lmp" class="input-field" onchange="calcEDD()"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">EDD (auto-calculated)</label><input type="date" id="anc-edd" class="input-field bg-slate-50" readonly></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Gestational Weeks</label><input type="number" id="anc-gestational" class="input-field" placeholder="Weeks"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Gravida</label><input type="number" id="anc-gravida" class="input-field" placeholder="G" value="1"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Para</label><input type="number" id="anc-para" class="input-field" placeholder="P" value="0"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Blood Pressure (sys/dia)</label><input type="text" id="anc-bp" class="input-field" placeholder="120/80"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Fetal Heart Rate (BPM)</label><input type="number" id="anc-fhr" class="input-field" placeholder="BPM"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label><input type="number" step="0.1" id="anc-weight" class="input-field" placeholder="kg"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Notes</label><textarea id="anc-notes" rows="2" class="input-field" placeholder="ANC notes..."></textarea></div>
+            </div>`;
+        Modal.show('New ANC Visit', bodyHTML, {
+            saveText: 'Save Visit',
+            onSave: async () => {
+                const patientId = document.getElementById('anc-patient-id').value;
+                if (!patientId) throw new Error('Please select a patient');
+                const lmp = document.getElementById('anc-lmp').value;
+                if (!lmp) throw new Error('LMP date is required');
+                const edd = document.getElementById('anc-edd').value;
+                const gravida = document.getElementById('anc-gravida').value;
+                const para = document.getElementById('anc-para').value;
+                const gestational = document.getElementById('anc-gestational').value;
+                const fhr = document.getElementById('anc-fhr').value;
+                const weight = document.getElementById('anc-weight').value;
+                const bp = document.getElementById('anc-bp').value.split('/');
+                await API.createAntenatalVisit({
+                    patient: patientId,
+                    lmp_date: lmp,
+                    edd_date: edd || null,
+                    ga_weeks: gestational ? parseInt(gestational) : null,
+                    gravida: gravida ? parseInt(gravida) : 1,
+                    parity: para ? parseInt(para) : 0,
+                    blood_pressure_systolic: bp[0] ? parseInt(bp[0]) : null,
+                    blood_pressure_diastolic: bp[1] ? parseInt(bp[1]) : null,
+                    fetal_heart_rate: fhr ? parseInt(fhr) : null,
+                    weight: weight ? parseFloat(weight) : null,
+                    notes: document.getElementById('anc-notes').value
+                });
+                showToast('ANC visit recorded!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    function calcEDD() {
+        const lmp = document.getElementById('anc-lmp').value;
+        if (!lmp) return;
+        const lmpDate = new Date(lmp);
+        lmpDate.setDate(lmpDate.getDate() + 280);
+        document.getElementById('anc-edd').value = lmpDate.toISOString().split('T')[0];
+        const today = new Date();
+        const diffDays = Math.floor((today - new Date(lmp)) / (1000 * 60 * 60 * 24));
+        const weeks = Math.floor(diffDays / 7);
+        if (weeks > 0 && weeks < 45) {
+            document.getElementById('anc-gestational').value = weeks;
+        }
+    }
+
+    function openLaborForm() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="labor-patient-search" placeholder="Search patient..." class="input-field" oninput="searchPatient('labor', this.value)">
+                    <div id="labor-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="labor-patient-id">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Cervical Dilation (cm)</label><input type="number" id="labor-cervical" class="input-field" placeholder="cm"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Fetal Heart Rate</label><input type="number" id="labor-fhr" class="input-field" placeholder="BPM"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Notes</label><textarea id="labor-notes" rows="2" class="input-field" placeholder="Labor notes..."></textarea></div>
+            </div>`;
+        Modal.show('Record Labor', bodyHTML, {
+            saveText: 'Start Labor Record',
+            onSave: async () => {
+                const patientId = document.getElementById('labor-patient-id').value;
+                if (!patientId) throw new Error('Please select a patient');
+                await API.createLaborRecord({
+                    patient: patientId,
+                    admission_time: new Date().toISOString(),
+                    cervical_dilation: document.getElementById('labor-cervical').value ? parseFloat(document.getElementById('labor-cervical').value) : null,
+                    fetal_heart_rate: document.getElementById('labor-fhr').value ? parseInt(document.getElementById('labor-fhr').value) : null,
+                    labor_progress_notes: document.getElementById('labor-notes').value
+                });
+                showToast('Labor record created!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    async function searchPatient(prefix, query) {
+        const resultsDiv = document.getElementById(`${prefix}-patient-results`);
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById(`${prefix}-patient-id`).value = p.id;
+                    document.getElementById(`${prefix}-patient-search`).value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    function recordANCVisit(visitId) {
+        const anc = allANC.find(v => v.id === visitId);
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Gestational Weeks</label><input type="number" id="anc-gest-weeks" class="input-field" placeholder="e.g. 28" value="${anc ? (anc.ga_weeks || '') : ''}"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Fetal Heart Rate (BPM)</label><input type="number" id="anc-fhr" class="input-field" placeholder="e.g. 140" value="${anc ? (anc.fetal_heart_rate || '') : ''}"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Blood Pressure</label><input type="text" id="anc-bp" class="input-field" placeholder="120/80" value="${anc ? ((anc.blood_pressure_systolic || '') + '/' + (anc.blood_pressure_diastolic || '')) : ''}"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label><input type="number" id="anc-weight" class="input-field" step="0.1" placeholder="65" value="${anc ? (anc.weight || '') : ''}"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Urine Protein</label><select id="anc-urine" class="input-field"><option value="negative">Negative</option><option value="trace">Trace</option><option value="1+">1+</option><option value="2+">2+</option></select></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Visit Notes</label><textarea id="anc-notes" rows="2" class="input-field" placeholder="Clinical notes...">${anc ? (anc.notes || '') : ''}</textarea></div>
+            </div>`;
+        Modal.show('Record ANC Visit', bodyHTML, {
+            saveText: 'Save Visit',
+            onSave: async () => {
+                await API.updateAntenatalVisit(visitId, {
+                    ga_weeks: document.getElementById('anc-gest-weeks').value ? parseInt(document.getElementById('anc-gest-weeks').value) : null,
+                    fetal_heart_rate: document.getElementById('anc-fhr').value ? parseInt(document.getElementById('anc-fhr').value) : null,
+                    blood_pressure_systolic: document.getElementById('anc-bp').value.split('/')[0] ? parseInt(document.getElementById('anc-bp').value.split('/')[0]) : null,
+                    blood_pressure_diastolic: document.getElementById('anc-bp').value.split('/')[1] ? parseInt(document.getElementById('anc-bp').value.split('/')[1]) : null,
+                    weight: document.getElementById('anc-weight').value ? parseFloat(document.getElementById('anc-weight').value) : null,
+                    urine_protein: document.getElementById('anc-urine').value,
+                    notes: document.getElementById('anc-notes').value.trim()
+                });
+                showToast('ANC visit recorded!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    function recordDelivery(laborId) {
+        const laborRec = allLabor.find(l => l.id === laborId);
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Mode of Delivery</label><select id="dlv-mode" class="input-field"><option value="vaginal">SVD</option><option value="c_section">Cesarean</option><option value="vacuum">Vacuum</option><option value="forceps">Forceps</option></select></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Blood Loss (ml)</label><input type="number" id="dlv-blood-loss" class="input-field" placeholder="e.g. 300"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Notes</label><textarea id="dlv-notes" rows="2" class="input-field" placeholder="Delivery notes..."></textarea></div>
+            </div>`;
+        Modal.show('Record Delivery', bodyHTML, {
+            saveText: 'Save Delivery',
+            onSave: async () => {
+                await API.updateLaborRecord(laborId, { status: 'completed' });
+                await API.createDeliveryRecord({
+                    labor_record: laborId,
+                    patient: laborRec ? laborRec.patient : '',
+                    delivery_time: new Date().toISOString(),
+                    delivery_method: document.getElementById('dlv-mode').value,
+                    blood_loss_ml: document.getElementById('dlv-blood-loss').value || null,
+                    notes: document.getElementById('dlv-notes').value.trim()
+                });
+                showToast('Delivery recorded!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    async function saveDeliveryOutcome(e) {
+        e.preventDefault();
+        const laborList = (window.allLabor || []);
+        if (laborList.length === 0) {
+            showToast('No labor records. Create a labor record first.', 'error');
+            return;
+        }
+        const laborOptions = laborList.map(l =>
+            `<option value="${l.id}">${Utils.escapeHtml(l.patient_name || 'Unknown')} - ${l.status}</option>`
+        ).join('');
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Select Labor Record *</label>
+                    <select id="dlv-labor-id" class="input-field">${laborOptions}</select>
+                </div>
+            </div>`;
+        Modal.show('Select Labor Record for Delivery', bodyHTML, {
+            saveText: 'Save Delivery',
+            onSave: async () => {
+                const laborId = document.getElementById('dlv-labor-id').value;
+                if (!laborId) throw new Error('Please select a labor record');
+                const laborRec = laborList.find(l => l.id === laborId);
+                const deliveryMethod = document.getElementById('delivery-mode').value;
+                const bloodLoss = document.getElementById('dlv-blood-loss') ? document.getElementById('dlv-blood-loss').value : null;
+                const deliveryRes = await API.createDeliveryRecord({
+                    labor_record: laborId,
+                    patient: laborRec ? laborRec.patient : '',
+                    delivery_time: new Date().toISOString(),
+                    delivery_method: deliveryMethod === 'svd' ? 'vaginal' : deliveryMethod === 'cs' ? 'c_section' : deliveryMethod,
+                    blood_loss_ml: bloodLoss ? parseInt(bloodLoss) : null,
+                    notes: 'Delivery recorded from OBGYN dashboard'
+                });
+                const deliveryId = deliveryRes.id;
+                const weightKg = document.getElementById('delivery-weight').value;
+                await API.createBirthRecord({
+                    delivery_record: deliveryId,
+                    patient: laborRec ? laborRec.patient : '',
+                    sex: document.getElementById('delivery-sex').value,
+                    birth_weight_grams: weightKg ? Math.round(parseFloat(weightKg) * 1000) : null,
+                    apgar_score_1min: document.getElementById('apgar-1').value ? parseInt(document.getElementById('apgar-1').value) : null,
+                    apgar_score_5min: document.getElementById('apgar-5').value ? parseInt(document.getElementById('apgar-5').value) : null,
+                    cry_at_birth: true,
+                    status: 'alive'
+                });
+                await API.updateLaborRecord(laborId, { status: 'completed' });
+                showToast('Delivery and birth record saved!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    function openBirthRecordForm() {
+        const deliveryList = [];
+        API.getDeliveryRecords().then(res => {
+            const deliveries = res.results || res || [];
+            if (deliveries.length === 0) {
+                showToast('No delivery records. Record a delivery first.', 'error');
+                return;
+            }
+            const options = deliveries.map(d =>
+                `<option value="${d.id}">${Utils.escapeHtml(d.patient_name || 'Unknown')} - ${d.delivery_method || 'N/A'}</option>`
+            ).join('');
+            const bodyHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Delivery Record *</label>
+                        <select id="birth-dlv-id" class="input-field">${options}</select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Baby Name</label><input type="text" id="birth-baby-name" class="input-field" placeholder="Baby name"></div>
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Sex</label><select id="birth-sex" class="input-field"><option value="M">Male</option><option value="F">Female</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Birth Weight (kg)</label><input type="number" step="0.01" id="birth-weight" class="input-field" placeholder="3.2"></div>
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Birth Length (cm)</label><input type="number" step="0.1" id="birth-length" class="input-field" placeholder="50"></div>
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Apgar 1 min</label><input type="number" min="0" max="10" id="birth-apgar1" class="input-field" value="8"></div>
+                        <div><label class="block text-xs font-bold text-slate-700 mb-1">Apgar 5 min</label><input type="number" min="0" max="10" id="birth-apgar5" class="input-field" value="9"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="birth-vitk" checked> Vitamin K Given</label>
+                        <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="birth-eye" checked> Eye Prophylaxis</label>
+                        <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="birth-hepb" checked> Hepatitis B Vaccine</label>
+                    </div>
+                </div>`;
+            Modal.show('Record Birth', bodyHTML, {
+                saveText: 'Save Birth Record',
+                onSave: async () => {
+                    const dlvId = document.getElementById('birth-dlv-id').value;
+                    if (!dlvId) throw new Error('Please select a delivery record');
+                    const dlvRec = deliveries.find(d => d.id === dlvId);
+                    const weightKg = document.getElementById('birth-weight').value;
+                    await API.createBirthRecord({
+                        delivery_record: dlvId,
+                        patient: dlvRec ? dlvRec.patient : '',
+                        baby_name: document.getElementById('birth-baby-name').value || null,
+                        sex: document.getElementById('birth-sex').value,
+                        birth_weight_grams: weightKg ? Math.round(parseFloat(weightKg) * 1000) : null,
+                        birth_length_cm: document.getElementById('birth-length').value ? parseFloat(document.getElementById('birth-length').value) : null,
+                        apgar_score_1min: document.getElementById('birth-apgar1').value ? parseInt(document.getElementById('birth-apgar1').value) : null,
+                        apgar_score_5min: document.getElementById('birth-apgar5').value ? parseInt(document.getElementById('birth-apgar5').value) : null,
+                        cry_at_birth: true,
+                        vitamin_k_given: document.getElementById('birth-vitk').checked,
+                        eye_prophylaxis_given: document.getElementById('birth-eye').checked,
+                        hepatitis_b_vaccine_given: document.getElementById('birth-hepb').checked,
+                        status: 'alive'
+                    });
+                    showToast('Birth record saved!', 'success');
+    function openPostnatalForm() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="pnc-patient-search" placeholder="Search patient..." class="input-field" oninput="searchPatient('pnc', this.value)">
+                    <div id="pnc-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="pnc-patient-id">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Day Postpartum *</label><input type="number" id="pnc-day" class="input-field" placeholder="e.g. 3" value="3"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">BP Systolic</label><input type="number" id="pnc-bp-sys" class="input-field" placeholder="120"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">BP Diastolic</label><input type="number" id="pnc-bp-dia" class="input-field" placeholder="80"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Temperature (°C)</label><input type="number" step="0.1" id="pnc-temp" class="input-field" placeholder="36.5"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Fundal Height (cm)</label><input type="number" step="0.1" id="pnc-fundal" class="input-field" placeholder="cm"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Baby Weight (g)</label><input type="number" id="pnc-baby-weight" class="input-field" placeholder="grams"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Feeding Method</label>
+                        <select id="pnc-feeding" class="input-field">
+                            <option value="breast">Breastfeeding</option>
+                            <option value="formula">Formula</option>
+                            <option value="mixed">Mixed</option>
+                            <option value="none">Not Feeding</option>
+                        </select>
+                    </div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">Lochia Assessment</label>
+                        <select id="pnc-lochia" class="input-field">
+                            <option value="normal">Normal</option>
+                            <option value="foul_smelling">Foul Smelling</option>
+                            <option value="heavy">Heavy</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Notes</label><textarea id="pnc-notes" rows="2" class="input-field" placeholder="Postnatal notes..."></textarea></div>
+            </div>`;
+        Modal.show('New Postnatal Visit', bodyHTML, {
+            saveText: 'Save Visit',
+            onSave: async () => {
+                const patientId = document.getElementById('pnc-patient-id').value;
+                if (!patientId) throw new Error('Please select a patient');
+                const day = document.getElementById('pnc-day').value;
+                if (!day) throw new Error('Day postpartum is required');
+                const bpSys = document.getElementById('pnc-bp-sys').value;
+                const bpDia = document.getElementById('pnc-bp-dia').value;
+                const temp = document.getElementById('pnc-temp').value;
+                const fundal = document.getElementById('pnc-fundal').value;
+                const babyWeight = document.getElementById('pnc-baby-weight').value;
+                await API.createPostnatalVisit({
+                    patient: patientId,
+                    visit_day_postpartum: parseInt(day),
+                    blood_pressure_systolic: bpSys ? parseInt(bpSys) : null,
+                    blood_pressure_diastolic: bpDia ? parseInt(bpDia) : null,
+                    temperature: temp ? parseFloat(temp) : null,
+                    fundal_height: fundal ? parseFloat(fundal) : null,
+                    baby_weight_grams: babyWeight ? parseInt(babyWeight) : null,
+                    feeding_method: document.getElementById('pnc-feeding').value,
+                    lochia_assessment: document.getElementById('pnc-lochia').value,
+                    notes: document.getElementById('pnc-notes').value
+                });
+                showToast('Postnatal visit recorded!', 'success');
+                loadOBGYNData();
+            }
+        });
+    }
+
+    async function loadMaternityBeds() {
+        try {
+            const res = await API.getMaternityBeds();
+            const beds = res.results || res || [];
+            const container = document.getElementById('maternity-beds');
+            const summary = document.getElementById('maternity-bed-summary');
+            const occupied = beds.filter(b => b.is_occupied).length;
+            const free = beds.filter(b => !b.is_occupied && !b.is_reserved).length;
+            summary.textContent = `${free} free / ${occupied} occupied / ${beds.length} total`;
+            if (beds.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs col-span-full">No maternity ward beds found</div>';
+                return;
+            }
+            container.innerHTML = beds.map(b => {
+                const color = b.is_occupied ? 'bg-red-100 border-red-300 text-red-700' : b.is_reserved ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-green-100 border-green-300 text-green-700';
+                const icon = b.is_occupied ? '●' : b.is_reserved ? '◐' : '○';
+                return `<div class="p-3 rounded-xl border-2 ${color} text-center text-xs font-bold cursor-default">${icon} ${b.bed_number}</div>`;
+            }).join('');
+        } catch (e) {
+            console.error('Maternity beds error:', e);
+        }
+    }
+
+    loadOBGYNData();
+    loadMaternityBeds();
+</script>
+{% endblock %}

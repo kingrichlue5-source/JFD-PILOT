@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% load export_tags %}
+
+{% block title %}Diagnostics - JFD Hospital HMS{% endblock %}
+{% block page_title %}Diagnostics & Investigations{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Pending Tests</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-pending">-</h3>
+                <span class="badge badge-warning text-[10px]">Awaiting</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Lab Tests</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-lab">-</h3>
+                <span class="badge badge-info text-[10px]">In Lab</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Completed</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-completed">-</h3>
+                <span class="badge badge-success text-[10px]">Ready</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Critical Results</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-critical">-</h3>
+                <span class="badge badge-danger text-[10px]">Urgent</span>
+            </div>
+        </div>
+    </div>
+
+    {% export_buttons "prescriptions" %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card accent-amber p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Lab Orders</h3>
+                <button onclick="openLabOrderForm()" class="btn-primary text-xs">+ New Lab Order</button>
+            </div>
+            <div id="lab-orders-list" class="space-y-3 overflow-y-auto max-h-[350px]">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading lab orders...</div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Radiology Orders</h3>
+                <button onclick="openRadiologyOrderForm()" class="btn-primary text-xs">+ New Imaging Order</button>
+            </div>
+            <div id="radiology-orders-list" class="space-y-3 overflow-y-auto max-h-[350px]">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading radiology orders...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-emerald p-6 space-y-5">
+        <div class="section-header-gradient rounded-xl px-5 py-4">
+            <h3 class="font-bold text-white text-base">Process Order & Enter Result</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Order *</label>
+                <select id="result-order" class="input-field"><option value="">Select...</option></select>
+                <div class="mt-1 text-xs text-slate-500 font-medium" id="result-selected-label"></div>
+                <input type="hidden" id="result-order-id">
+                <input type="hidden" id="result-patient-id">
+                <input type="hidden" id="result-visit-id">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Result Status</label>
+                <select id="result-status" class="input-field"><option value="normal">Normal</option><option value="abnormal">Abnormal</option><option value="critical">Critical</option></select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Verified By</label>
+                <input type="text" class="input-field" value="{{ user.get_full_name|default:'Lab Tech' }}" readonly>
+            </div>
+        </div>
+        <div><label class="block text-xs font-bold text-slate-700 mb-1">Result Details</label><textarea id="result-details" rows="3" class="input-field" placeholder="Lab values, impressions, findings..."></textarea></div>
+        <div class="flex justify-end"><button onclick="saveResult()" class="btn-primary text-xs">Save Result</button></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadDiagnosticsData() {
+        try {
+            const allOrders = await API.getAllOrders();
+            const all = (allOrders.results || allOrders || []);
+            const lab = all.filter(o => o.order_type === 'lab');
+            const radio = all.filter(o => o.order_type === 'radiology');
+
+            let specimens = [];
+            try {
+                const specRes = await API.request('GET', '/clinical/specimens/');
+                specimens = specRes.results || specRes || [];
+            } catch(e) {}
+
+            const specimenMap = {};
+            specimens.forEach(s => {
+                if (s.order) specimenMap[s.order] = s;
+            });
+
+            document.getElementById('stat-pending').textContent = lab.filter(o => o.status === 'pending').length + radio.filter(o => o.status === 'pending').length;
+            document.getElementById('stat-lab').textContent = lab.filter(o => o.status === 'in_progress').length;
+            document.getElementById('stat-completed').textContent = lab.filter(o => o.status === 'completed').length + radio.filter(o => o.status === 'completed').length;
+
+            try {
+                const critRes = await API.request('GET', '/clinical/diagnostic-results/?critical=true').catch(() => []);
+                const critResults = Array.isArray(critRes) ? critRes : (critRes.results || []);
+                document.getElementById('stat-critical').textContent = critResults.filter(r => r.critical_flag && r.status !== 'rejected').length;
+            } catch(e) {
+                document.getElementById('stat-critical').textContent = 0;
+            }
+
+            renderLabOrders(lab, specimenMap);
+            renderRadiologyOrders(radio);
+            populateOrderDropdown(lab.concat(radio));
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function sortOrdersByPriority(orders) {
+        const priorityOrder = { stat: 0, urgent: 1, routine: 2 };
+        return orders.sort((a, b) => (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2));
+    }
+
+    function renderLabOrders(orders, specimenMap) {
+        const container = document.getElementById('lab-orders-list');
+        const sorted = sortOrdersByPriority(orders);
+        if (sorted.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No lab orders</div>';
+            return;
+        }
+        container.innerHTML = '';
+        sorted.forEach(o => {
+            const card = document.createElement('div');
+            const statusColor = { pending: 'warning', in_progress: 'info', completed: 'success' };
+            const spec = specimenMap[o.id];
+            const specStatus = spec ? spec.status : null;
+            const specColor = { collected: 'warning', in_transit: 'info', received: 'primary', analyzing: 'info', completed: 'success', rejected: 'danger' };
+            const isStat = o.priority === 'stat';
+            card.className = 'p-4 bg-amber-50/50 border rounded-xl' + (isStat ? ' border-red-300 bg-red-50/30' : ' border-amber-100');
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(o.patient_name || '')}</span>
+                    <div class="flex gap-1">
+                        ${isStat ? '<span class="badge badge-danger text-[10px]">STAT</span>' : ''}
+                        ${spec ? `<span class="badge badge-${specColor[specStatus] || 'info'} text-[10px]">Specimen: ${specStatus}</span>` : ''}
+                        <span class="badge badge-${statusColor[o.status] || 'info'} text-[10px]">${o.status || 'pending'}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Tests: ${Utils.escapeHtml(o.order_description || '-')}</p>
+                <p class="text-xs text-slate-500">Urgency: ${o.urgency || 'routine'}</p>
+                ${spec ? `<p class="text-xs text-slate-400 mt-1">Specimen: ${spec.specimen_number} (${spec.specimen_type}) - ${spec.status}</p>` : ''}
+                ${spec && spec.status === 'collected' ? `<button onclick="receiveSpecimen('${spec.id}')" class="mt-2 px-3 py-1 text-[10px] font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">Receive in Lab</button>` : ''}
+                ${spec && spec.status === 'received' ? `<button onclick="completeSpecimen('${spec.id}')" class="mt-2 px-3 py-1 text-[10px] font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Mark Complete</button>` : ''}`;
+            container.appendChild(card);
+        });
+    }
+
+    function renderRadiologyOrders(orders) {
+        const container = document.getElementById('radiology-orders-list');
+        const sorted = sortOrdersByPriority(orders);
+        if (sorted.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No radiology orders</div>';
+            return;
+        }
+        container.innerHTML = '';
+        sorted.forEach(o => {
+            const card = document.createElement('div');
+            const statusColor = { pending: 'warning', in_progress: 'info', completed: 'success' };
+            const isStat = o.priority === 'stat';
+            card.className = 'p-4 bg-cyan-50/50 border rounded-xl' + (isStat ? ' border-red-300 bg-red-50/30' : ' border-cyan-100');
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(o.patient_name || '')}</span>
+                    <div class="flex gap-1">
+                        ${isStat ? '<span class="badge badge-danger text-[10px]">STAT</span>' : ''}
+                        <span class="badge badge-${statusColor[o.status] || 'info'} text-[10px]">${o.status || 'pending'}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Study: ${Utils.escapeHtml(o.order_description || '')}</p>
+                <p class="text-xs text-slate-500">Clinical Info: ${Utils.escapeHtml(o.notes || '-')}</p>`;
+            container.appendChild(card);
+        });
+    }
+
+    let allOrdersCache = [];
+
+    function populateOrderDropdown(orders) {
+        allOrdersCache = orders;
+        const sel = document.getElementById('result-order');
+        sel.innerHTML = '<option value="">Select order...</option>';
+        orders.forEach((o, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = `${o.patient_name || ''} - ${o.order_description || o.order_type || ''}`;
+            sel.appendChild(opt);
+        });
+        sel.onchange = function() {
+            const idx = parseInt(this.value);
+            if (!isNaN(idx) && allOrdersCache[idx]) {
+                const o = allOrdersCache[idx];
+                document.getElementById('result-order-id').value = o.id;
+                document.getElementById('result-patient-id').value = o.patient || '';
+                document.getElementById('result-visit-id').value = o.visit || '';
+                document.getElementById('result-selected-label').textContent = `${o.patient_name || ''} - ${o.order_description || o.order_type || ''}`;
+            } else {
+                document.getElementById('result-order-id').value = '';
+                document.getElementById('result-patient-id').value = '';
+                document.getElementById('result-visit-id').value = '';
+                document.getElementById('result-selected-label').textContent = '';
+            }
+        };
+    }
+
+    async function openLabOrderForm() {
+        let visits = [];
+        try { const res = await API.getVisits('?status=in_progress'); visits = res.results || res || []; } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Search Visit *</label>
+                    <input type="text" id="lab-visit-search" class="input-field" placeholder="Type patient name, MRN, or visit number..." oninput="filterDiagVisit(this.value, 'lab')">
+                    <div id="lab-visit-results" class="mt-1 space-y-1 max-h-[200px] overflow-y-auto">
+                        ${visits.map(v => `<button type="button" class="w-full text-left p-2 bg-slate-50 hover:bg-primary/5 border border-slate-200 rounded-lg text-xs diag-visit-btn" data-id="${v.id}" onclick="selectDiagVisit('${v.id}', 'lab')"><span class="font-bold">${Utils.escapeHtml(v.patient_name || '')}</span> <span class="text-slate-400">${Utils.escapeHtml(v.visit_number || v.patient_mrn || '')}</span></button>`).join('')}
+                    </div>
+                    <input type="hidden" id="lab-visit-id">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Tests Requested *</label><textarea id="lab-tests" rows="2" class="input-field" placeholder="CBC, LFTs, U&E, Malaria test, Urinalysis..."></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Clinical Indication</label><textarea id="lab-clinical" rows="2" class="input-field" placeholder="Reason for tests..."></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Urgency</label>
+                    <select id="lab-urgency" class="input-field"><option value="routine">Routine</option><option value="urgent">Urgent</option><option value="stat">STAT</option></select>
+                </div>
+            </div>`;
+        Modal.show('New Lab Order', bodyHTML, {
+            saveText: 'Submit Order',
+            onSave: async () => {
+                const visitId = document.getElementById('lab-visit-id').value;
+                if (!visitId) throw new Error('Please select a patient visit');
+                const tests = document.getElementById('lab-tests').value;
+                const clinical = document.getElementById('lab-clinical').value;
+                await API.placeOrder(visitId, {
+                    order_type: 'lab',
+                    items: [{ description: tests, notes: clinical }],
+                    priority: document.getElementById('lab-urgency').value
+                });
+                showToast('Lab order submitted!', 'success');
+                loadDiagnosticsData();
+            }
+        });
+    }
+
+    async function openRadiologyOrderForm() {
+        let visits = [];
+        try { const res = await API.getVisits('?status=in_progress'); visits = res.results || res || []; } catch(e) {}
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Search Visit *</label>
+                    <input type="text" id="radio-visit-search" class="input-field" placeholder="Type patient name, MRN, or visit number..." oninput="filterDiagVisit(this.value, 'radio')">
+                    <div id="radio-visit-results" class="mt-1 space-y-1 max-h-[200px] overflow-y-auto">
+                        ${visits.map(v => `<button type="button" class="w-full text-left p-2 bg-slate-50 hover:bg-primary/5 border border-slate-200 rounded-lg text-xs diag-visit-btn" data-prefix="radio" data-id="${v.id}" onclick="selectDiagVisit('${v.id}', 'radio')"><span class="font-bold">${Utils.escapeHtml(v.patient_name || '')}</span> <span class="text-slate-400">${Utils.escapeHtml(v.visit_number || v.patient_mrn || '')}</span></button>`).join('')}
+                    </div>
+                    <input type="hidden" id="radio-visit-id">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Study Type *</label>
+                    <select id="radio-study" class="input-field">
+                        <option value="xray">X-Ray</option><option value="ct">CT Scan</option><option value="mri">MRI</option><option value="ultrasound">Ultrasound</option><option value="mammography">Mammography</option>
+                    </select>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Clinical Information</label><textarea id="radio-clinical" rows="2" class="input-field" placeholder="Clinical context..."></textarea></div>
+            </div>`;
+        Modal.show('New Imaging Order', bodyHTML, {
+            saveText: 'Submit Order',
+            onSave: async () => {
+                const visitId = document.getElementById('radio-visit-id').value;
+                if (!visitId) throw new Error('Please select a patient visit');
+                const study = document.getElementById('radio-study').value;
+                const clinical = document.getElementById('radio-clinical').value;
+                await API.placeOrder(visitId, {
+                    order_type: 'radiology',
+                    items: [{ description: study, notes: clinical }]
+                });
+                showToast('Imaging order submitted!', 'success');
+                loadDiagnosticsData();
+            }
+        });
+    }
+
+    function filterDiagVisit(query, prefix) {
+        const q = query.toLowerCase();
+        document.querySelectorAll(`#${prefix}-visit-results .diag-visit-btn`).forEach(btn => {
+            btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    function selectDiagVisit(visitId, prefix) {
+        document.getElementById(`${prefix}-visit-id`).value = visitId;
+        document.querySelectorAll(`#${prefix}-visit-results .diag-visit-btn`).forEach(btn => {
+            btn.classList.toggle('bg-primary/10', btn.dataset.id === visitId);
+            btn.classList.toggle('border-primary', btn.dataset.id === visitId);
+        });
+        const searchInput = document.getElementById(`${prefix}-visit-search`);
+        if (searchInput) {
+            const selected = [...document.querySelectorAll(`#${prefix}-visit-results .diag-visit-btn`)].find(b => b.dataset.id === visitId);
+            if (selected) searchInput.value = selected.textContent.trim();
+        }
+    }
+
+    async function searchPatientDiag(prefix, query) {
+        const resultsDiv = document.getElementById(`${prefix}-patient-results`);
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById(`${prefix}-patient-id`).value = p.id;
+                    document.getElementById(`${prefix}-patient-search`).value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    async function saveResult() {
+        const orderId = document.getElementById('result-order-id').value;
+        const patientId = document.getElementById('result-patient-id').value;
+        const visitId = document.getElementById('result-visit-id').value;
+        if (!orderId) { showToast('Please select an order', 'error'); return; }
+        const resultStatus = document.getElementById('result-status').value;
+        try {
+            await API.createDiagnosticResult({
+                order: orderId,
+                patient: patientId,
+                visit: visitId,
+                result_text: document.getElementById('result-details').value,
+                is_abnormal: resultStatus === 'abnormal' || resultStatus === 'critical',
+                critical_flag: resultStatus === 'critical',
+                notes: ''
+            });
+            showToast('Diagnostic result saved! Order marked completed.', 'success');
+            document.getElementById('result-order-id').value = '';
+            document.getElementById('result-patient-id').value = '';
+            document.getElementById('result-visit-id').value = '';
+            document.getElementById('result-details').value = '';
+            document.getElementById('result-selected-label').textContent = '';
+            loadDiagnosticsData();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    async function receiveSpecimen(specimenId) {
+        try {
+            await API.request('POST', `/clinical/specimens/${specimenId}/receive/`, {});
+            showToast('Specimen received in lab!', 'success');
+            loadDiagnosticsData();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    async function completeSpecimen(specimenId) {
+        try {
+            await API.request('POST', `/clinical/specimens/${specimenId}/complete/`, {});
+            showToast('Specimen analysis completed!', 'success');
+            loadDiagnosticsData();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    loadDiagnosticsData();
+</script>
+{% endblock %}

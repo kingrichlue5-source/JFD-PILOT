@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Department Management - JFD Hospital HMS{% endblock %}
+{% block page_title %}Department Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Departments</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_departments }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Clinical</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ clinical_count }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Non-Clinical</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_departments|add:"-"|add:clinical_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">All Departments</h3>
+            <div class="flex items-center gap-3">
+                <input type="text" id="dept-search" placeholder="Search departments..." class="input-field text-xs w-48" oninput="filterDeptTable()">
+                <button onclick="openDeptModal()" class="btn-primary text-xs">+ Create Department</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-slate-100">
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Department</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Code</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Parent</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Type</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Status</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dept-table-body">
+                    {% for dept in departments %}
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                        <td class="py-3 px-4">
+                            <div>
+                                <p class="font-bold text-slate-900">{{ dept.name }}</p>
+                                <p class="text-[11px] text-slate-500">{{ dept.description|truncatewords:10|default:"-" }}</p>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-slate-600">{{ dept.code }}</td>
+                        <td class="py-3 px-4 text-slate-600">{{ dept.parent_department|default:"-" }}</td>
+                        <td class="py-3 px-4">
+                            {% if dept.is_clinical %}
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Clinical</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">Non-Clinical</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if dept.is_active %}
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Active</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <button onclick="openDeptModal('{{ dept.id }}', '{{ dept.name }}', '{{ dept.code }}', '{{ dept.description|default:"" }}', '{{ dept.parent_department.id|default:"" }}', '{{ dept.is_clinical|yesno:"true,false" }}')" class="px-3 py-1 text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all">Edit</button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="py-8 text-center text-slate-400">No departments found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="dept-modal" class="hidden modal-overlay" onclick="if(event.target===this)closeDeptModal()">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="dept-modal-title">Create Department</h3>
+            <button onclick="closeDeptModal()" class="modal-close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form method="post" class="modal-body space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create" id="dept-form-action">
+            <input type="hidden" name="dept_id" id="dept-form-id" value="">
+            <div><label>Department Name *</label><input type="text" name="name" id="dept-form-name" class="input-field" required></div>
+            <div><label>Code *</label><input type="text" name="code" id="dept-form-code" class="input-field" required></div>
+            <div><label>Description</label><textarea name="description" id="dept-form-desc" class="input-field" rows="3"></textarea></div>
+            <div><label>Parent Department</label><select name="parent_department" id="dept-form-parent" class="input-field"><option value="">None (Top Level)</option>{% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}</select></div>
+            <div class="flex items-center gap-2 pt-1"><input type="checkbox" name="is_clinical" id="dept-form-clinical" value="true" class="rounded"><label for="dept-form-clinical" class="!mb-0">Clinical Department</label></div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" onclick="closeDeptModal()" class="btn-outline">Cancel</button>
+            <button type="button" onclick="document.querySelector('#dept-modal form').submit()" class="btn-primary">Save Department</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function debounce(fn, ms) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+function filterDeptTable() {
+    const query = document.getElementById('dept-search').value.toLowerCase();
+    const rows = document.querySelectorAll('#dept-table-body tr');
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+function openDeptModal(id, name, code, desc, parentId, isClinical) {
+    document.getElementById('dept-modal-title').textContent = id ? 'Edit Department' : 'Create Department';
+    document.getElementById('dept-form-action').value = id ? 'edit' : 'create';
+    document.getElementById('dept-form-id').value = id || '';
+    document.getElementById('dept-form-name').value = name || '';
+    document.getElementById('dept-form-code').value = code || '';
+    document.getElementById('dept-form-desc').value = desc || '';
+    document.getElementById('dept-form-parent').value = parentId || '';
+    document.getElementById('dept-form-clinical').checked = isClinical === 'true';
+    document.getElementById('dept-modal').classList.remove('hidden');
+}
+function closeDeptModal() { document.getElementById('dept-modal').classList.add('hidden'); }
+</script>
+{% endblock %}

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triage Ticket - JFD Hospital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+        }
+        @page { size: A4; margin: 15mm; }
+    </style>
+</head>
+<body class="bg-white text-black text-sm font-sans">
+    <div id="ticket" class="max-w-lg mx-auto p-6">
+        <!-- Header -->
+        <header class="text-center border-b-2 border-black pb-4 mb-4">
+            <h1 class="text-lg font-bold uppercase">Jackson F. Doe Memorial Regional Referral Hospital</h1>
+            <p class="text-xs">Tappita City, Nimba County, Liberia</p>
+            <h2 class="text-xl font-bold mt-3 uppercase tracking-wide">Triage Ticket</h2>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-8 text-slate-500">Loading ticket data...</div>
+
+        <!-- Error State -->
+        <div id="error" class="text-center py-8 text-red-600 hidden">Failed to load ticket data.</div>
+
+        <!-- Ticket Content -->
+        <div id="content" class="hidden space-y-4">
+
+            <!-- Patient Information -->
+            <section>
+                <h3 class="font-bold border-b border-slate-400 mb-1">Patient Information</h3>
+                <div class="grid grid-cols-2 gap-y-1 text-xs">
+                    <div><span class="font-semibold">MRN:</span> <span id="mrn">-</span></div>
+                    <div><span class="font-semibold">Phone:</span> <span id="phone">-</span></div>
+                    <div class="col-span-2"><span class="font-semibold">Name:</span> <span id="patient-name">-</span></div>
+                    <div><span class="font-semibold">DOB:</span> <span id="dob">-</span></div>
+                    <div><span class="font-semibold">Age:</span> <span id="age">-</span></div>
+                    <div><span class="font-semibold">Gender:</span> <span id="gender">-</span></div>
+                </div>
+            </section>
+
+            <!-- Visit Information -->
+            <section>
+                <h3 class="font-bold border-b border-slate-400 mb-1">Visit Information</h3>
+                <div class="grid grid-cols-2 gap-y-1 text-xs">
+                    <div><span class="font-semibold">Visit #:</span> <span id="visit-number">-</span></div>
+                    <div><span class="font-semibold">Type:</span> <span id="visit-type">-</span></div>
+                    <div class="col-span-2"><span class="font-semibold">Date/Time:</span> <span id="visit-datetime">-</span></div>
+                </div>
+            </section>
+
+            <!-- Triage Assessment -->
+            <section>
+                <h3 class="font-bold border-b border-slate-400 mb-1">Triage Assessment</h3>
+                <div class="text-xs space-y-1">
+                    <div><span class="font-semibold">Chief Complaint:</span> <span id="chief-complaint">-</span></div>
+                    <div><span class="font-semibold">Acuity Level:</span> <span id="acuity-badge" class="inline-block px-2 py-0.5 rounded font-bold">-</span></div>
+                </div>
+
+                <!-- Vital Signs -->
+                <div class="mt-2">
+                    <h4 class="font-semibold text-xs mb-1">Vital Signs</h4>
+                    <div class="grid grid-cols-3 gap-1 text-xs border border-slate-300 p-2 rounded">
+                        <div>BP: <span id="bp" class="font-medium">-</span></div>
+                        <div>HR: <span id="hr" class="font-medium">-</span></div>
+                        <div>RR: <span id="rr" class="font-medium">-</span></div>
+                        <div>Temp: <span id="temp" class="font-medium">-</span></div>
+                        <div>SpO2: <span id="spo2" class="font-medium">-</span></div>
+                        <div>Weight: <span id="weight" class="font-medium">-</span></div>
+                        <div>Height: <span id="height" class="font-medium">-</span></div>
+                        <div>Pain: <span id="pain" class="font-medium">-</span></div>
+                        <div>Glucose: <span id="glucose" class="font-medium">-</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Routing Decision -->
+            <section>
+                <h3 class="font-bold border-b border-slate-400 mb-1">Routing Decision</h3>
+                <div class="text-xs space-y-1">
+                    <div><span class="font-semibold">Department:</span> <span id="department" class="font-bold">-</span></div>
+                    <div><span class="font-semibold">Priority:</span> <span id="priority" class="font-bold">-</span></div>
+                    <div><span class="font-semibold">Reason:</span> <span id="routing-reason">-</span></div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="border-t-2 border-black pt-4 mt-6 text-xs">
+                <div class="flex justify-between items-end mb-4">
+                    <div class="w-48">
+                        <div class="border-b border-black mb-1">&nbsp;</div>
+                        <div class="text-center">Nurse Signature</div>
+                    </div>
+                    <div class="text-right">
+                        <div>Date/Time Printed:</div>
+                        <div id="print-datetime" class="font-medium">-</div>
+                    </div>
+                </div>
+                <p class="text-center text-slate-500 italic">This is a triage assessment ticket - not a medical record</p>
+            </footer>
+        </div>
+
+        <!-- Close Button -->
+        <div class="no-print text-center mt-6">
+            <button onclick="window.close()" class="px-6 py-2 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium border border-slate-400">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const ACUITY_COLORS = {
+            1: { bg: 'bg-red-600', text: 'text-white', label: 'Resuscitation' },
+            2: { bg: 'bg-orange-500', text: 'text-white', label: 'Emergent' },
+            3: { bg: 'bg-yellow-400', text: 'text-black', label: 'Urgent' },
+            4: { bg: 'bg-green-500', text: 'text-white', label: 'Less Urgent' },
+            5: { bg: 'bg-blue-500', text: 'text-white', label: 'Non-Urgent' }
+        };
+
+        function getParam(name) {
+            return new URLSearchParams(window.location.search).get(name);
+        }
+
+        function formatDate(dt) {
+            if (!dt) return '-';
+            const d = new Date(dt);
+            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function setText(id, val) {
+            document.getElementById(id).textContent = val || '-';
+        }
+
+        function populateTicket(data) {
+            const p = data.patient || {};
+            setText('mrn', p.mrn);
+            setText('patient-name', [p.last_name, p.first_name, p.middle_name].filter(Boolean).join(', '));
+            setText('dob', p.date_of_birth);
+            setText('age', p.age ? `${p.age} yrs` : '-');
+            setText('gender', p.gender);
+            setText('phone', p.phone_number);
+
+            const v = data.visit || {};
+            setText('visit-number', v.visit_number);
+            setText('visit-type', v.visit_type);
+            setText('visit-datetime', formatDate(v.created_at));
+
+            const t = data.triage || {};
+            setText('chief-complaint', t.chief_complaint);
+
+            const level = t.acuity_level;
+            const badge = document.getElementById('acuity-badge');
+            const colors = ACUITY_COLORS[level] || ACUITY_COLORS[5];
+            badge.textContent = `${level} - ${colors.label}`;
+            badge.className = `inline-block px-2 py-0.5 rounded font-bold ${colors.bg} ${colors.text}`;
+
+            setText('bp', t.blood_pressure);
+            setText('hr', t.heart_rate ? `${t.heart_rate} bpm` : '-');
+            setText('rr', t.respiratory_rate ? `${t.respiratory_rate}/min` : '-');
+            setText('temp', t.temperature ? `${t.temperature}°C` : '-');
+            setText('spo2', t.oxygen_saturation ? `${t.oxygen_saturation}%` : '-');
+            setText('weight', t.weight ? `${t.weight} kg` : '-');
+            setText('height', t.height ? `${t.height} cm` : '-');
+            setText('pain', t.pain_scale !== undefined ? `${t.pain_scale}/10` : '-');
+            setText('glucose', t.blood_glucose ? `${t.blood_glucose} mg/dL` : '-');
+
+            const r = data.routing || {};
+            setText('department', r.department_name || r.department);
+            setText('priority', r.priority_level || r.priority);
+            setText('routing-reason', r.reason);
+
+            document.getElementById('print-datetime').textContent = formatDate(new Date());
+
+            document.getElementById('content').classList.remove('hidden');
+            document.getElementById('loading').classList.add('hidden');
+
+            setTimeout(() => window.print(), 500);
+        }
+
+        async function loadTicket() {
+            const visitId = getParam('visit');
+            if (!visitId) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error').textContent = 'No visit ID provided.';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/visits/${visitId}/triage-ticket/`);
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                populateTicket(data);
+            } catch (e) {
+                try {
+                    const res = await fetch(`${API_BASE}/visits/${visitId}/`);
+                    if (!res.ok) throw new Error('Failed to fetch visit');
+                    const visit = await res.json();
+
+                    let triage = {};
+                    try {
+                        const tRes = await fetch(`${API_BASE}/triage/?visit=${visitId}`);
+                        if (tRes.ok) {
+                            const tData = await tRes.json();
+                            triage = Array.isArray(tData) ? (tData[0] || {}) : (tData.results ? tData.results[0] || {} : {});
+                        }
+                    } catch (_) {}
+
+                    let routing = {};
+                    try {
+                        const rRes = await fetch(`${API_BASE}/routing/?visit=${visitId}`);
+                        if (rRes.ok) {
+                            const rData = await rRes.json();
+                            routing = Array.isArray(rData) ? (rData[0] || {}) : (rData.results ? rData.results[0] || {} : {});
+                        }
+                    } catch (_) {}
+
+                    populateTicket({ patient: visit.patient || {}, visit, triage, routing });
+                } catch (e2) {
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('error').classList.remove('hidden');
+                }
+            }
+        }
+
+        loadTicket();
+    </script>
+</body>
+</html>

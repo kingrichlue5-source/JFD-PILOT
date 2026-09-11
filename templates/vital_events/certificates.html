@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load export_tags %}
+
+{% block title %}Vital Events (CRVS) - WPOS JFD Hospital HMS{% endblock %}
+{% block page_title %}Civil Registration & Vital Statistics (CRVS){% endblock %}
+
+{% block content %}
+<div class="page-enter space-y-6">
+
+    <!-- CRVS KPI Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="glass-card p-4 border-l-4 border-emerald-500">
+            <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Birth Certificates (This Month)</span>
+            <span class="text-2xl font-black text-emerald-600">18</span>
+        </div>
+        <div class="glass-card p-4 border-l-4 border-slate-400">
+            <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Death Certificates (This Month)</span>
+            <span class="text-2xl font-black text-slate-600">3</span>
+        </div>
+        <div class="glass-card p-4 border-l-4 border-amber-500">
+            <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Pending Review</span>
+            <span class="text-2xl font-black text-amber-600">2</span>
+        </div>
+        <div class="glass-card p-4 border-l-4 border-blue-500">
+            <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Total Issued (YTD)</span>
+            <span class="text-2xl font-black text-blue-600">145</span>
+        </div>
+    </div>
+
+    <!-- Tab Switcher: Births | Deaths -->
+    <div class="glass-card accent-emerald p-6 space-y-5">
+        <div class="flex items-center gap-1 border-b border-slate-100 pb-3">
+            <button onclick="switchCRVSTab('birth')" id="tab-birth" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl transition-all">Birth Certificates</button>
+            <button onclick="switchCRVSTab('death')" id="tab-death" class="px-5 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl transition-all hover:bg-slate-200">Death Certificates</button>
+        </div>
+
+        <!-- Birth Certificates Panel -->
+        <div id="panel-birth" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-slate-900 text-sm">Recent Birth Registrations</h3>
+                {% export_buttons "patients" %}
+                <button onclick="openBirthForm()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-500/20">+ Register Birth</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <th class="pb-3 px-3">Certificate #</th>
+                            <th class="pb-3 px-3">Newborn Name</th>
+                            <th class="pb-3 px-3">Mother Name</th>
+                            <th class="pb-3 px-3">Date of Birth</th>
+                            <th class="pb-3 px-3">Sex / Weight</th>
+                            <th class="pb-3 px-3">Status</th>
+                            <th class="pb-3 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                        <tr class="hover:bg-emerald-50/50 transition-colors">
+                            <td class="py-3.5 px-3 font-mono text-xs font-bold text-emerald-600">BC-2026-0018</td>
+                            <td class="py-3.5 px-3 font-extrabold text-slate-900">Baby Girl Kollie</td>
+                            <td class="py-3.5 px-3 text-xs">Patience Kollie</td>
+                            <td class="py-3.5 px-3 text-xs">Aug 18, 2026</td>
+                            <td class="py-3.5 px-3 text-xs">Female • 3.20 kg</td>
+                            <td class="py-3.5 px-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Issued</span></td>
+                            <td class="py-3.5 px-3 text-right">
+                                <button onclick="printCertificate('BC-2026-0018')" class="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all">🖨 Print</button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-3 font-mono text-xs font-bold text-emerald-600">BC-2026-0017</td>
+                            <td class="py-3.5 px-3 font-extrabold text-slate-900">Baby Boy Williams</td>
+                            <td class="py-3.5 px-3 text-xs">Sarah Williams</td>
+                            <td class="py-3.5 px-3 text-xs">Aug 17, 2026</td>
+                            <td class="py-3.5 px-3 text-xs">Male • 3.45 kg</td>
+                            <td class="py-3.5 px-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Pending Review</span></td>
+                            <td class="py-3.5 px-3 text-right">
+                                <button onclick="reviewCertificate('BC-2026-0017')" class="px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all">Review</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Death Certificates Panel (Hidden) -->
+        <div id="panel-death" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-slate-900 text-sm">Death Certificate Register</h3>
+                <button onclick="openDeathForm()" class="px-4 py-2 text-xs font-bold text-white bg-slate-700 hover:bg-slate-800 rounded-xl transition-all">+ Register Death</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                            <th class="pb-3 px-3">Certificate #</th>
+                            <th class="pb-3 px-3">Deceased Name</th>
+                            <th class="pb-3 px-3">Date of Death</th>
+                            <th class="pb-3 px-3">Cause of Death (ICD-10)</th>
+                            <th class="pb-3 px-3">Certifying Physician</th>
+                            <th class="pb-3 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-3 font-mono text-xs font-bold text-slate-600">DC-2026-0003</td>
+                            <td class="py-3.5 px-3 font-extrabold text-slate-900">John Weah Sr.</td>
+                            <td class="py-3.5 px-3 text-xs">Aug 15, 2026</td>
+                            <td class="py-3.5 px-3 text-xs">I50.9 - Heart Failure, Unspecified</td>
+                            <td class="py-3.5 px-3 text-xs">Dr. Kollie Nishant</td>
+                            <td class="py-3.5 px-3 text-right">
+                                <button onclick="printCertificate('DC-2026-0003')" class="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all">🖨 Print</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Birth Certificate Registration Form -->
+    <div class="glass-card accent-blue p-6 space-y-4">
+        <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">New Birth Certificate Registration</h3>
+        <form onsubmit="saveBirthCertificate(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Mother's Name (Full)</label>
+                <input type="text" placeholder="e.g. Patience Mary Kollie" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Father's Name (Full)</label>
+                <input type="text" placeholder="e.g. James Kollie" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Newborn's Name</label>
+                <input type="text" placeholder="e.g. Baby Girl Kollie" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Date & Time of Birth</label>
+                <input type="datetime-local" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Sex of Newborn</label>
+                <select class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+                    <option>Female</option><option>Male</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Birth Weight (kg)</label>
+                <input type="number" step="0.01" placeholder="3.20" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div class="sm:col-span-3 flex justify-end">
+                <button type="submit" class="px-7 py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all">Register Birth & Issue Certificate</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchCRVSTab(tab) {
+        document.getElementById('panel-birth').classList.toggle('hidden', tab !== 'birth');
+        document.getElementById('panel-death').classList.toggle('hidden', tab !== 'death');
+        document.getElementById('tab-birth').className = tab === 'birth'
+            ? 'px-5 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl transition-all'
+            : 'px-5 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl transition-all hover:bg-slate-200';
+        document.getElementById('tab-death').className = tab === 'death'
+            ? 'px-5 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl transition-all'
+            : 'px-5 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl transition-all hover:bg-slate-200';
+    }
+    function openBirthForm() { showToast('Birth registration form ready below.', 'info'); }
+    function openDeathForm() { showToast('Death registration form opened.', 'info'); }
+    function printCertificate(certNo) { showToast(`Certificate ${certNo} sent to printer.`, 'info'); }
+    function reviewCertificate(certNo) { showToast(`Certificate ${certNo} opened for review and approval.`, 'info'); }
+    function saveBirthCertificate(e) {
+        e.preventDefault();
+        showToast('Birth Certificate registered and issued! Record saved to CRVS registry.', 'success');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Triage Awaiting Registration - JFD Hospital HMS{% endblock %}
+{% block page_title %}Triage Awaiting Registration{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Patients Awaiting Registration</h3>
+                <p class="text-xs text-slate-500 mt-1">Patients triaged but not yet formally registered. Click a patient to complete registration.</p>
+            </div>
+            <span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-700">{{ pending_visits|length }} pending</span>
+        </div>
+    </div>
+
+    {% if pending_visits %}
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50/50">
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Queue #</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Visit #</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Patient</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Chief Complaint</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Acuity</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Wait Time</th>
+                        <th class="text-right py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in pending_visits %}
+                    <tr class="border-b border-slate-100 hover:bg-primary/5 transition-colors">
+                        <td class="py-3 px-4">
+                            <span class="font-mono text-xs font-bold text-primary">{{ forloop.counter }}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="font-mono text-xs font-semibold text-slate-700">{{ visit.visit_number|default:"-" }}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if visit.patient %}
+                            <div>
+                                <p class="font-semibold text-slate-900 text-sm">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</p>
+                                <p class="text-[11px] text-slate-500">MRN: {{ visit.patient.mrn|default:"Pending" }}</p>
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-1 rounded-lg">Walk-in (unregistered)</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-600 max-w-[200px] truncate">{{ visit.chief_complaint|default:"-" }}</td>
+                        <td class="py-3 px-4">
+                            {% if visit.triage_priority %}
+                            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full
+                                {% if visit.triage_priority == 1 %}bg-red-100 text-red-700
+                                {% elif visit.triage_priority == 2 %}bg-orange-100 text-orange-700
+                                {% elif visit.triage_priority == 3 %}bg-yellow-100 text-yellow-700
+                                {% elif visit.triage_priority == 4 %}bg-blue-100 text-blue-700
+                                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                                Level {{ visit.triage_priority }}
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-slate-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-500" id="wait-{{ visit.id }}"></td>
+                        <td class="py-3 px-4 text-right">
+                            <a href="{% url 'patient-register-page' %}?visit_id={{ visit.id }}" class="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all">
+                                Complete Registration
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass-card p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <p class="text-sm font-medium text-slate-500">No patients awaiting registration</p>
+        <p class="text-xs text-slate-400 mt-1">All triaged patients have been registered.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('[id^="wait-"]').forEach(function(el) {
+    var visitId = el.id.replace('wait-', '');
+    var row = el.closest('tr');
+    if (!row) return;
+    var timeCell = row.querySelector('td:nth-child(6)');
+    if (!timeCell) return;
+    var checkinText = row.querySelector('td:nth-child(2)') ? row.dataset.checkin : null;
+});
+</script>
+{% endblock %}

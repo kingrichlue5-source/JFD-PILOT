@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+{% load export_tags %}
+
+{% block title %}Surgery & Theatres - JFD Hospital HMS{% endblock %}
+{% block page_title %}Surgery & Theatres Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Scheduled Today</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-scheduled">-</h3>
+                <span class="badge badge-info text-[10px]">Procedures</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">In Progress</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-inprogress">-</h3>
+                <span class="badge badge-warning text-[10px]">Active</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Completed (Month)</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-completed">-</h3>
+                <span class="badge badge-success text-[10px]">Done</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Cancelled</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-cancelled">-</h3>
+                <span class="badge badge-danger text-[10px]">Issues</span>
+            </div>
+        </div>
+    </div>
+
+    {% export_buttons "surgery" %}
+
+    <div class="glass-card accent-blue p-5 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+            <h3 class="font-bold text-white text-base">Surgical Ward Beds</h3>
+            <span class="text-[10px] font-bold text-blue-100" id="ward-bed-summary">Loading...</span>
+        </div>
+        <div id="ward-beds" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="text-center py-4 text-slate-400 text-xs col-span-full">Loading ward beds...</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card accent-purple p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Theatre Schedule</h3>
+                <button onclick="openScheduleCaseForm()" class="btn-primary text-xs">+ Schedule Case</button>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="filterSurgeryCases('all')" class="surg-filter-btn active text-[10px] px-3 py-1 rounded-full font-bold border border-slate-300" data-filter="all">All</button>
+                <button onclick="filterSurgeryCases('scheduled')" class="surg-filter-btn text-[10px] px-3 py-1 rounded-full font-bold border border-slate-300" data-filter="scheduled">Scheduled</button>
+                <button onclick="filterSurgeryCases('in_progress')" class="surg-filter-btn text-[10px] px-3 py-1 rounded-full font-bold border border-slate-300" data-filter="in_progress">In Progress</button>
+                <button onclick="filterSurgeryCases('completed')" class="surg-filter-btn text-[10px] px-3 py-1 rounded-full font-bold border border-slate-300" data-filter="completed">Completed</button>
+                <button onclick="filterSurgeryCases('cancelled')" class="surg-filter-btn text-[10px] px-3 py-1 rounded-full font-bold border border-slate-300" data-filter="cancelled">Cancelled</button>
+            </div>
+            <div id="surgery-list" class="space-y-3 overflow-y-auto max-h-[350px]">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading theatre schedule...</div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3">
+                <h3 class="font-bold text-white text-base">WHO Surgical Safety Checklist</h3>
+            </div>
+            <div id="who-checklist" class="space-y-3">
+                <div class="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <p class="text-xs font-bold text-blue-700 mb-3">Select an active surgery to begin checklist</p>
+                    <button onclick="openWHOChecklist()" class="btn-primary text-xs" id="btn-who-checklist" disabled>Open WHO Checklist</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-emerald p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-5 py-4">
+            <h3 class="font-bold text-white text-base">Post-Op Anesthesia Recovery Record</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Aldrete Score</label><input type="number" min="0" max="10" id="alderete-score" class="input-field" placeholder="0-10"></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Airway Status</label>
+                <select id="airway-status" class="input-field"><option value="intact">Intact</option><option value="compromised">Compromised</option></select>
+            </div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Pain Score (NRS)</label><input type="number" min="0" max="10" id="pain-score" class="input-field" placeholder="0-10"></div>
+        </div>
+        <div class="flex justify-end"><button onclick="saveRecovery()" class="btn-primary text-xs">Save Recovery Status</button></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadSurgeryData() {
+        let list = [];
+        window.surgeonList = [];
+        try {
+            const casesRes = await API.getSurgicalCases();
+            list = casesRes.results || casesRes || [];
+        } catch(e) { console.error('Cases error:', e); }
+        try {
+            const usersRes = await API.getUsers('?role=DOCTOR,SURGEON');
+            window.surgeonList = usersRes.results || usersRes || [];
+        } catch(e) { console.error('Users error (non-critical):', e); }
+
+        window.allCases = list;
+        window.currentFilter = 'all';
+
+            document.getElementById('stat-scheduled').textContent = list.filter(c => c.status === 'scheduled').length;
+            document.getElementById('stat-inprogress').textContent = list.filter(c => c.status === 'in_progress').length;
+            document.getElementById('stat-completed').textContent = list.filter(c => c.status === 'completed').length;
+            document.getElementById('stat-cancelled').textContent = list.filter(c => c.status === 'cancelled').length;
+
+            renderSurgeryList(list);
+
+            const active = list.find(c => c.status === 'in_progress' || c.status === 'scheduled');
+            document.getElementById('btn-who-checklist').disabled = !active;
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function filterSurgeryCases(status) {
+        window.currentFilter = status;
+        document.querySelectorAll('.surg-filter-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-blue-600', 'text-white', 'border-blue-600');
+            btn.classList.add('bg-white', 'text-slate-600');
+        });
+        const activeBtn = document.querySelector(`.surg-filter-btn[data-filter="${status}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'bg-blue-600', 'text-white', 'border-blue-600');
+            activeBtn.classList.remove('bg-white', 'text-slate-600');
+        }
+        const filtered = status === 'all' ? window.allCases : window.allCases.filter(c => c.status === status);
+        renderSurgeryList(filtered);
+    }
+
+    function renderSurgeryList(cases) {
+        const container = document.getElementById('surgery-list');
+        if (cases.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No surgical cases recorded</div>';
+            return;
+        }
+        container.innerHTML = '';
+        cases.forEach(c => {
+            const card = document.createElement('div');
+            const statusColors = { scheduled: 'info', in_progress: 'warning', completed: 'success', cancelled: 'danger' };
+            const badge = statusColors[c.status] || 'info';
+            card.className = 'p-4 bg-purple-50/50 border border-purple-100 rounded-xl cursor-pointer hover:bg-purple-100/50 transition-all';
+            card.onclick = (e) => { if (e.target.tagName !== 'BUTTON') viewSurgeryCase(c.id); };
+            let actions = '';
+            if (c.status === 'scheduled') {
+                actions = `<button onclick="event.stopPropagation();updateSurgeryStatus('${c.id}','in_progress')" class="btn-outline text-[10px]">Start</button>
+                           <button onclick="event.stopPropagation();updateSurgeryStatus('${c.id}','cancelled')" class="btn-outline text-[10px]">Cancel</button>`;
+            } else if (c.status === 'in_progress') {
+                actions = `<button onclick="event.stopPropagation();updateSurgeryStatus('${c.id}','completed')" class="btn-outline text-[10px]">Complete</button>
+                           <button onclick="event.stopPropagation();updateSurgeryStatus('${c.id}','cancelled')" class="btn-outline text-[10px]">Cancel</button>`;
+            }
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(c.patient_name || '')}</span>
+                    <span class="badge badge-${badge} text-[10px]">${(c.status || 'scheduled').replace('_', ' ')}</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Procedure: ${Utils.escapeHtml(c.procedure_name || '-')} | Surgeon: ${Utils.escapeHtml(c.surgeon_name || '-')}</p>
+                <p class="text-xs text-slate-500">Date: ${Utils.formatDateTime(c.scheduled_date || c.created_at)}</p>
+                <div class="mt-2 flex gap-2">${actions}</div>`;
+            container.appendChild(card);
+        });
+    }
+
+    function viewSurgeryCase(id) {
+        const c = window.allCases.find(x => x.id === id);
+        if (!c) return;
+        const statusColors = { scheduled: 'info', in_progress: 'warning', completed: 'success', cancelled: 'danger' };
+        const badge = statusColors[c.status] || 'info';
+        let actions = '';
+        if (c.status === 'scheduled') {
+            actions = `<button onclick="updateSurgeryStatus('${c.id}','in_progress');Modal.hide();" class="btn-primary text-xs">Start Surgery</button>
+                       <button onclick="updateSurgeryStatus('${c.id}','cancelled');Modal.hide();" class="btn-outline text-xs text-red-600 border-red-300">Cancel</button>`;
+        } else if (c.status === 'in_progress') {
+            actions = `<button onclick="updateSurgeryStatus('${c.id}','completed');Modal.hide();" class="btn-primary text-xs">Mark Completed</button>
+                       <button onclick="updateSurgeryStatus('${c.id}','cancelled');Modal.hide();" class="btn-outline text-xs text-red-600 border-red-300">Cancel</button>`;
+        }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900">${Utils.escapeHtml(c.patient_name || 'Unknown')}</h4>
+                    <span class="badge badge-${badge}">${(c.status || '').replace('_', ' ')}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div><span class="font-bold text-slate-600">Case #:</span> ${Utils.escapeHtml(c.case_number || '-')}</div>
+                    <div><span class="font-bold text-slate-600">Patient MRN:</span> ${Utils.escapeHtml(c.patient_mrn || '-')}</div>
+                    <div class="col-span-2"><span class="font-bold text-slate-600">Procedure:</span> ${Utils.escapeHtml(c.procedure_name || '-')}</div>
+                    <div><span class="font-bold text-slate-600">Surgeon:</span> ${Utils.escapeHtml(c.surgeon_name || '-')}</div>
+                    <div><span class="font-bold text-slate-600">Scheduled:</span> ${Utils.formatDateTime(c.scheduled_date || c.created_at)}</div>
+                    <div><span class="font-bold text-slate-600">Priority:</span> ${Utils.escapeHtml(c.priority || 'elective')}</div>
+                    <div><span class="font-bold text-slate-600">Anesthesia:</span> ${Utils.escapeHtml(c.anesthesia_type || '-')}</div>
+                </div>
+                ${c.surgical_site ? `<div class="text-xs"><span class="font-bold text-slate-600">Surgical Site:</span> ${Utils.escapeHtml(c.surgical_site)} ${Utils.escapeHtml(c.laterality || '')}</div>` : ''}
+                ${c.pre_op_diagnosis ? `<div class="text-xs"><span class="font-bold text-slate-600">Pre-Op Dx:</span> ${Utils.escapeHtml(c.pre_op_diagnosis)}</div>` : ''}
+                ${c.post_op_diagnosis ? `<div class="text-xs"><span class="font-bold text-slate-600">Post-Op Dx:</span> ${Utils.escapeHtml(c.post_op_diagnosis)}</div>` : ''}
+                ${c.duration_minutes ? `<div class="text-xs"><span class="font-bold text-slate-600">Duration:</span> ${c.duration_minutes} min</div>` : ''}
+                ${c.estimated_blood_loss_ml ? `<div class="text-xs"><span class="font-bold text-slate-600">Blood Loss:</span> ${c.estimated_blood_loss_ml} mL</div>` : ''}
+                ${c.complications ? `<div class="text-xs"><span class="font-bold text-slate-600">Complications:</span> ${Utils.escapeHtml(c.complications)}</div>` : ''}
+                ${c.notes ? `<div class="text-xs"><span class="font-bold text-slate-600">Notes:</span> ${Utils.escapeHtml(c.notes)}</div>` : ''}
+                ${actions ? `<div class="flex gap-2 justify-end pt-2 border-t">${actions}</div>` : ''}
+            </div>`;
+        Modal.show('Surgical Case Details', bodyHTML, { size: 'large' });
+    }
+
+    function openScheduleCaseForm() {
+        const surgeons = window.surgeonList || [];
+        const surgeonOptions = surgeons.map(s => {
+            const roleName = (s.roles && s.roles.length > 0) ? s.roles[0].name : '';
+            return `<option value="${s.id}">${Utils.escapeHtml(s.first_name || '')} ${Utils.escapeHtml(s.last_name || '')} (${Utils.escapeHtml(roleName)})</option>`;
+        }).join('');
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="surg-patient-search" placeholder="Search patient..." class="input-field" oninput="searchPatientSurg(this.value)">
+                    <div id="surg-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="surg-patient-id">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Surgeon *</label>
+                    <select id="surg-surgeon" class="input-field">
+                        <option value="">Select surgeon...</option>
+                        ${surgeonOptions}
+                    </select>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Procedure *</label><textarea id="surg-procedures" rows="2" class="input-field" placeholder="Procedure description..."></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Scheduled Date</label><input type="datetime-local" id="surg-scheduled-date" class="input-field"></div>
+            </div>`;
+        Modal.show('Schedule Surgical Case', bodyHTML, {
+            saveText: 'Schedule Case',
+            onSave: async () => {
+                const patientId = document.getElementById('surg-patient-id').value;
+                if (!patientId) throw new Error('Please select a patient');
+                const surgeonId = document.getElementById('surg-surgeon').value;
+                if (!surgeonId) throw new Error('Please select a surgeon');
+                await API.createSurgicalCase({
+                    patient: patientId,
+                    surgeon: surgeonId,
+                    procedure_name: document.getElementById('surg-procedures').value,
+                    scheduled_date: document.getElementById('surg-scheduled-date').value || null
+                });
+                showToast('Surgical case scheduled!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+
+    async function loadWardBeds() {
+        try {
+            const res = await API.getSurgicalBeds();
+            const beds = res.results || res || [];
+            const container = document.getElementById('ward-beds');
+            const summary = document.getElementById('ward-bed-summary');
+            const occupied = beds.filter(b => b.is_occupied).length;
+            const free = beds.filter(b => !b.is_occupied && !b.is_reserved).length;
+            summary.textContent = `${free} free / ${occupied} occupied / ${beds.length} total`;
+            if (beds.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs col-span-full">No surgical ward beds found</div>';
+                return;
+            }
+            container.innerHTML = beds.map(b => {
+                const color = b.is_occupied ? 'bg-red-100 border-red-300 text-red-700' : b.is_reserved ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-green-100 border-green-300 text-green-700';
+                const icon = b.is_occupied ? '●' : b.is_reserved ? '◐' : '○';
+                return `<div class="p-3 rounded-xl border-2 ${color} text-center text-xs font-bold cursor-default">${icon} ${b.bed_number}</div>`;
+            }).join('');
+        } catch (e) {
+            console.error('Ward beds error:', e);
+        }
+    }
+
+    loadSurgeryData();
+    loadWardBeds();
+            }
+        });
+    }
+
+    async function searchPatientSurg(query) {
+        const resultsDiv = document.getElementById('surg-patient-results');
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('surg-patient-id').value = p.id;
+                    document.getElementById('surg-patient-search').value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    async function updateSurgeryStatus(id, status) {
+        try {
+            await API.updateSurgicalCase(id, { status });
+            showToast(`Case status updated to ${status}`, 'success');
+            loadSurgeryData();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    function openWHOChecklist() {
+        const activeCase = allCases.find(c => c.status === 'in_progress' || c.status === 'scheduled');
+        if (!activeCase) { showToast('No active surgical case found', 'error'); return; }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <h4 class="font-bold text-sm text-slate-900">Sign In (Before Skin Incision)</h4>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <label><input type="checkbox" class="mr-1" id="who-1"> Patient identity confirmed</label>
+                    <label><input type="checkbox" class="mr-1" id="who-2"> Surgical site marked</label>
+                    <label><input type="checkbox" class="mr-1" id="who-3"> Anesthesia safety check</label>
+                    <label><input type="checkbox" class="mr-1" id="who-4"> Team introduction (names + roles)</label>
+                    <label><input type="checkbox" class="mr-1" id="who-5"> Antibiotic prophylaxis given</label>
+                    <label><input type="checkbox" class="mr-1" id="who-6"> Essential imaging displayed</label>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 mt-4">Time Out (Before Procedure)</h4>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <label><input type="checkbox" class="mr-1" id="who-7"> Confirm procedure name</label>
+                    <label><input type="checkbox" class="mr-1" id="who-8"> Anticipated critical events</label>
+                    <label><input type="checkbox" class="mr-1" id="who-9"> Sterilization confirmed</label>
+                    <label><input type="checkbox" class="mr-1" id="who-10"> Equipment issues addressed</label>
+                </div>
+                <h4 class="font-bold text-sm text-slate-900 mt-4">Sign Out (Before Patient Leaves)</h4>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <label><input type="checkbox" class="mr-1" id="who-11"> Procedure name confirmed</label>
+                    <label><input type="checkbox" class="mr-1" id="who-12"> Instrument/sponge count correct</label>
+                    <label><input type="checkbox" class="mr-1" id="who-13"> Specimen labeled</label>
+                    <label><input type="checkbox" class="mr-1" id="who-14"> Equipment issues noted</label>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1 mt-3">Notes</label><textarea id="who-notes" rows="2" class="input-field" placeholder="Checklist notes..."></textarea></div>
+            </div>`;
+        Modal.show('WHO Surgical Safety Checklist', bodyHTML, {
+            saveText: 'Save Checklist',
+            size: 'large',
+            onSave: async () => {
+                const items = {};
+                for (let i = 1; i <= 14; i++) {
+                    items[`item_${i}`] = document.getElementById(`who-${i}`).checked;
+                }
+                const notes = document.getElementById('who-notes').value;
+                await API.updateSurgicalCase(activeCase.id, {
+                    who_checklist: items,
+                    who_checklist_notes: notes,
+                    status: activeCase.status
+                });
+                showToast('WHO Checklist saved!', 'success');
+            }
+        });
+    }
+
+    async function saveRecovery() {
+        try {
+            const activeCase = allCases.find(c => c.status === 'in_progress' || c.status === 'completed');
+            if (!activeCase) { showToast('No active surgical case found', 'error'); return; }
+            const score = document.getElementById('alderete-score').value;
+            const airway = document.getElementById('airway-status').value;
+            const pain = document.getElementById('pain-score').value;
+            await API.updateSurgicalCase(activeCase.id, {
+                recovery_score: score,
+                airway_status: airway,
+                pain_score: pain,
+                status: activeCase.status
+            });
+            showToast('Recovery status saved! Aldrete: ' + score + '/10', 'success');
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    loadSurgeryData();
+</script>
+{% endblock %}

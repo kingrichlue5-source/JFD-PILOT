@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Follow-Up Queue - JFD Hospital HMS{% endblock %}
+{% block page_title %}Follow-Up Visit Queue{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    {% if overdue_visits %}
+    <div class="glass-card p-5 border-l-4 border-l-red-500 bg-red-50/50">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+                <p class="text-sm font-bold text-red-800">{{ overdue_visits|length }} Overdue Follow-Up{{ overdue_visits|length|pluralize }}</p>
+                <p class="text-xs text-red-700 mt-0.5">These patients are past their scheduled follow-up window.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Inside Follow-Up Window ({{ window_days }} days)</h3>
+                <p class="text-xs text-slate-500 mt-1">Patients with scheduled follow-ups within the configured window.</p>
+            </div>
+            <span class="px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">{{ follow_up_visits|length }} patients</span>
+        </div>
+    </div>
+
+    {% if follow_up_visits %}
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50/50">
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Patient</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">MRN</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Scheduled Date</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th class="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Visit Type</th>
+                        <th class="text-right py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in follow_up_visits %}
+                    {% with days_diff=visit.follow_up_date|timeuntil:today %}
+                    <tr class="border-b border-slate-100 hover:bg-primary/5 transition-colors">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
+                                    {{ visit.patient.first_name|first }}{{ visit.patient.last_name|first }}
+                                </div>
+                                <p class="font-semibold text-slate-900 text-sm">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</p>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-600">{{ visit.patient.mrn }}</td>
+                        <td class="py-3 px-4 text-xs text-slate-700">{{ visit.follow_up_date|date:"d M Y" }}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700">On Track</span>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-600">{{ visit.visit_type|upper }}</td>
+                        <td class="py-3 px-4 text-right">
+                            <a href="/patients/search/?q={{ visit.patient.mrn }}" class="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all">View Patient</a>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="glass-card p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <p class="text-sm font-medium text-slate-500">No follow-up visits in window</p>
+        <p class="text-xs text-slate-400 mt-1">All follow-up patients are outside the {{ window_days }}-day window.</p>
+    </div>
+    {% endif %}
+
+    {% if overdue_visits %}
+    <div class="glass-card p-5 border-l-4 border-l-red-500">
+        <h3 class="font-bold text-red-800 text-sm mb-4">Overdue Follow-Ups</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        <th class="text-left py-2 px-4 text-[11px] font-bold text-slate-500 uppercase">Patient</th>
+                        <th class="text-left py-2 px-4 text-[11px] font-bold text-slate-500 uppercase">MRN</th>
+                        <th class="text-left py-2 px-4 text-[11px] font-bold text-slate-500 uppercase">Scheduled</th>
+                        <th class="text-left py-2 px-4 text-[11px] font-bold text-slate-500 uppercase">Days Overdue</th>
+                        <th class="text-right py-2 px-4 text-[11px] font-bold text-slate-500 uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in overdue_visits %}
+                    <tr class="border-b border-slate-100">
+                        <td class="py-2 px-4 text-sm font-semibold text-slate-900">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</td>
+                        <td class="py-2 px-4 font-mono text-xs text-slate-600">{{ visit.patient.mrn }}</td>
+                        <td class="py-2 px-4 text-xs text-slate-600">{{ visit.follow_up_date|date:"d M Y" }}</td>
+                        <td class="py-2 px-4"><span class="text-xs font-bold text-red-600">{{ visit.follow_up_date|timesince }} ago</span></td>
+                        <td class="py-2 px-4 text-right">
+                            <a href="/patients/search/?q={{ visit.patient.mrn }}" class="px-3 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl">Follow Up</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

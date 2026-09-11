@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% load static %}
+{% load rbac_tags %}
+
+{% block title %}Dashboard - JFD Hospital HMS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <!-- Greeting -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="greeting-text">Hello, {{ request.user.first_name|default:"User" }}</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Here's what's happening at the hospital today.</p>
+        </div>
+        <div class="text-right">
+            <p class="text-sm font-semibold text-slate-900">{{ today }}</p>
+            <p class="text-xs text-slate-400">JFD Memorial Hospital</p>
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    {% user_has_permission "PATIENT_VIEW" as can_view_patients %}
+    {% user_has_permission "ENCOUNTER_VIEW" as can_view_encounters %}
+    {% user_has_permission "INVOICE_VIEW" as can_view_invoices %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+        {% if can_view_patients %}
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Patients</p>
+                <h3 class="text-2xl font-bold text-slate-900 stat-number" data-target="{{ total_patients }}">0</h3>
+                <span class="stat-trend up">Active registry</span>
+            </div>
+        </div>
+        {% endif %}
+        {% if can_view_encounters %}
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today's Visits</p>
+                <h3 class="text-2xl font-bold text-slate-900 stat-number" data-target="{{ today_visits }}">0</h3>
+                <span class="stat-trend up">Today</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Active Admissions</p>
+                <h3 class="text-2xl font-bold text-slate-900 stat-number" data-target="{{ active_admissions }}">0</h3>
+                <span class="stat-trend neutral">{{ bed_occupancy_pct }}% occupancy</span>
+            </div>
+        </div>
+        {% endif %}
+        {% if can_view_invoices %}
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today's Revenue</p>
+                <h3 class="text-2xl font-bold text-slate-900">${{ today_payments|floatformat:0 }}</h3>
+                <span class="stat-trend up">Collected today</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Charts Row -->
+    {% if can_view_encounters %}
+    <div class="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-6">
+        <!-- Visit Trends Bar Chart -->
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Weekly Visit Trends</h3>
+            </div>
+            <div style="height: 260px">
+                <canvas id="visitTrendsChart"></canvas>
+            </div>
+        </div>
+        <!-- Visits by Type Doughnut -->
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Visit Distribution</h3>
+            </div>
+            <div style="height: 260px; display:flex; align-items:center; justify-content:center">
+                <canvas id="visitTypeChart"></canvas>
+            </div>
+            <div class="flex items-center justify-center gap-4 mt-2 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></span> OPD</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#10b981]"></span> ER</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span> IPD</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]"></span> Other</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions + Revenue Chart -->
+    {% user_has_permission "PATIENT_CREATE" as can_register %}
+    {% user_has_permission "TRIAGE_PERFORM" as can_triage %}
+    {% user_has_permission "ENCOUNTER_EDIT" as can_opd %}
+    {% user_has_permission "RX_VIEW" as can_pharmacy %}
+    {% user_has_permission "INVENTORY_VIEW" as can_inventory %}
+    {% user_has_permission "ORDER_VIEW" as can_diagnostics %}
+    <div class="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
+        {% if can_view_invoices %}
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Revenue (Last 7 Days)</h3>
+            </div>
+            <div style="height: 220px">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+        <!-- Quick Actions -->
+        <div class="glass-card p-5">
+            <h3 class="section-title border-0 pb-0 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-3">
+                {% if can_register %}
+                <a href="/patients/register/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    Register
+                </a>
+                {% endif %}
+                {% if can_triage %}
+                <a href="/clinical/triage/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Triage
+                </a>
+                {% endif %}
+                {% if can_opd %}
+                <a href="/opd/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    OPD
+                </a>
+                {% endif %}
+                {% if can_pharmacy %}
+                <a href="/pharmacy/dispensing/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Pharmacy
+                </a>
+                {% endif %}
+                {% if can_view_invoices %}
+                <a href="/cashier/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Cashier
+                </a>
+                {% endif %}
+                {% if can_inventory %}
+                <a href="/inventory/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    Inventory
+                </a>
+                {% endif %}
+                {% if can_diagnostics %}
+                <a href="/clinical/diagnostics/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    Diagnostics
+                </a>
+                {% endif %}
+                {% if can_opd %}
+                <a href="/clinical/er-evaluation/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    ER Evaluation
+                </a>
+                <a href="/clinical/pediatric/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    Pediatric
+                </a>
+                <a href="/clinical/nurse-notes/" class="quick-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Nurse Notes
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Triage Queue + Alerts + Ward Occupancy -->
+    <div class="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
+        <!-- Triage Queue -->
+        {% if can_triage %}
+        <div class="glass-card p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Triage Queue</h3>
+                <a href="/clinical/triage/" class="text-xs font-semibold text-[var(--blue-500)] hover:text-[var(--blue-600)]">View All</a>
+            </div>
+            <div class="space-y-2">
+                {% for visit in triage_queue %}
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="avatar avatar-blue">
+                            {{ visit.patient.first_name|first }}{{ visit.patient.last_name|first }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</p>
+                            <p class="text-[0.6875rem] text-slate-400 font-mono">{{ visit.patient.mrn }}</p>
+                        </div>
+                    </div>
+                    <span class="badge {% if visit.triage_priority == '1' %}badge-danger{% elif visit.triage_priority == '2' %}badge-warning{% elif visit.triage_priority == '3' %}badge-info{% else %}badge-success{% endif %}">
+                        P{{ visit.triage_priority|default:"?" }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400 text-center py-6">No patients in triage queue</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Alerts -->
+        <div class="glass-card p-5">
+            <h3 class="section-title border-0 pb-0 mb-4">Alerts</h3>
+            <div class="space-y-3">
+                {% if can_view_invoices and pending_invoices > 0 %}
+                <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <span class="text-sm font-medium text-amber-700">{{ pending_invoices }} unpaid invoice{{ pending_invoices|pluralize }}</span>
+                </div>
+                {% endif %}
+                {% if can_inventory and low_stock_count > 0 %}
+                <div class="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
+                    <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    </div>
+                    <span class="text-sm font-medium text-rose-700">{{ low_stock_count }} low stock item{{ low_stock_count|pluralize }}</span>
+                </div>
+                {% endif %}
+                {% if can_diagnostics and pending_orders > 0 %}
+                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <span class="text-sm font-medium text-blue-700">{{ pending_orders }} pending order{{ pending_orders|pluralize }}</span>
+                </div>
+                {% endif %}
+                {% if not pending_invoices and not low_stock_count and not pending_orders %}
+                <div class="flex items-center justify-center gap-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span class="text-sm font-medium text-emerald-700">All clear - no alerts</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Triage Vitals -->
+        {% if can_triage %}
+        <div class="glass-card p-5 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Triage Vitals</h3>
+                <a href="/clinical/triage/" class="text-xs font-semibold text-[var(--blue-500)] hover:text-[var(--blue-600)]">View All</a>
+            </div>
+            <div class="grid grid-cols-2 gap-3 flex-1">
+                <div class="p-3 bg-slate-50 rounded-xl flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        </div>
+                        <span class="text-[0.6875rem] text-slate-500 font-medium">Seen Today</span>
+                    </div>
+                    <p class="text-xl font-bold text-slate-900">{{ triage_today_count|default:"0" }}</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded bg-emerald-100 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <span class="text-[0.6875rem] text-slate-500 font-medium">Completed</span>
+                    </div>
+                    <p class="text-xl font-bold text-slate-900">{{ triage_completed_today|default:"0" }}</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded bg-rose-100 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <span class="text-[0.6875rem] text-slate-500 font-medium">Critical (P1-P2)</span>
+                    </div>
+                    <p class="text-xl font-bold text-rose-600">{{ triage_critical_count|default:"0" }}</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl flex flex-col justify-between">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded bg-amber-100 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <span class="text-[0.6875rem] text-slate-500 font-medium">In Queue</span>
+                    </div>
+                    <p class="text-xl font-bold text-amber-600">{{ triage_queue|length }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Ward Occupancy -->
+        {% if can_view_encounters %}
+        <div class="glass-card p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="section-title border-0 pb-0">Ward Occupancy</h3>
+                <a href="/clinical/ipd/" class="text-xs font-semibold text-[var(--blue-500)] hover:text-[var(--blue-600)]">Manage</a>
+            </div>
+            <div class="space-y-4">
+                {% for ward in ward_occupancy %}
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-semibold text-slate-700">{{ ward.ward_name }}</span>
+                        <span class="text-[0.6875rem] font-medium text-slate-400">{{ ward.occupied }}/{{ ward.total }}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if ward.occupancy_rate > 80 %}amber{% elif ward.occupancy_rate > 50 %}blue{% else %}green{% endif %}" style="width: {{ ward.occupancy_rate }}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400 text-center py-4">No ward data</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Visits Table -->
+    {% if can_view_encounters %}
+    <div class="glass-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="section-title border-0 pb-0">Recent Visits Today</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>MRN</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in recent_visits %}
+                    <tr>
+                        <td>
+                            <div class="flex items-center gap-2.5">
+                                <div class="avatar avatar-blue text-[0.625rem]">
+                                    {{ visit.patient.first_name|first }}{{ visit.patient.last_name|first }}
+                                </div>
+                                <span class="font-semibold text-slate-900">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</span>
+                            </div>
+                        </td>
+                        <td class="font-mono text-xs text-slate-400">{{ visit.patient.mrn }}</td>
+                        <td><span class="badge badge-info">{{ visit.visit_type|upper }}</span></td>
+                        <td>{{ visit.status|title }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-6 text-slate-400">No visits today</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate stat counters
+    document.querySelectorAll('.stat-number[data-target]').forEach(el => {
+        Utils.animateCounter(el, parseInt(el.dataset.target) || 0);
+    });
+
+    // Visit trends bar chart
+    {% if can_view_encounters %}
+    JFDCharts.bar('visitTrendsChart',
+        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        [
+            { label: 'OPD',  data: [18,22,19,24,21,12,8], color: 'blue' },
+            { label: 'ER',   data: [6,8,5,9,7,4,3],      color: 'rose' },
+            { label: 'IPD',  data: [3,2,4,3,5,2,1],      color: 'amber' },
+        ],
+        { plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 8, padding: 16, usePointStyle: true, font: { family: 'Inter', size: 11 } } } } }
+    );
+
+    JFDCharts.doughnut('visitTypeChart',
+        ['OPD','ER','IPD','Other'],
+        [42, 22, 18, 8],
+        ['blue','emerald','amber','violet']
+    );
+    {% endif %}
+
+    {% if can_view_invoices %}
+    JFDCharts.line('revenueChart',
+        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        [{ label: 'Revenue', data: [4200,5800,3900,6100,5200,3400,2800], color: 'blue' }]
+    );
+    {% endif %}
+});
+</script>
+{% endblock %}

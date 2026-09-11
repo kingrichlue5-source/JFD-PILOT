@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Nurse Progress Notes - JFD Hospital HMS{% endblock %}
+{% block page_title %}Nurse Progress Notes{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="text-center">
+        <h1 class="text-2xl font-bold text-slate-900 section-title">Nurse Progress Notes</h1>
+    </div>
+
+    {% if visit is None %}
+    <div class="glass-card p-6 max-w-xl mx-auto space-y-5">
+        <div class="section-header-gradient rounded-xl px-4 py-3">
+            <h3 class="font-bold text-white text-base">Select a Visit</h3>
+        </div>
+
+        <div class="relative">
+            <input type="text" id="visit-search" placeholder="Search patient by name or MRN..." class="input-field w-full" autocomplete="off">
+            <div id="search-results" class="hidden absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-72 overflow-y-auto"></div>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="glass-card accent-blue p-5">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg flex-shrink-0">
+                {{ visit.patient.first_name|first }}{{ visit.patient.last_name|first }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h2 class="font-bold text-slate-900 text-lg">{{ visit.patient.first_name }} {{ visit.patient.middle_name|default:"" }} {{ visit.patient.last_name }}</h2>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-slate-500">
+                    <span>MRN: <span class="font-mono font-semibold text-slate-700">{{ visit.patient.mrn }}</span></span>
+                    <span>DOB: <span class="font-semibold text-slate-700">{{ visit.patient.date_of_birth|date:"d M Y" }}</span></span>
+                    <span>Sex: <span class="font-semibold text-slate-700">{{ visit.patient.get_gender_display }}</span></span>
+                    {% if visit.patient.blood_type %}<span>Blood: <span class="font-semibold text-slate-700">{{ visit.patient.blood_type }}</span></span>{% endif %}
+                    {% if visit.patient.phone %}<span>Phone: <span class="font-semibold text-slate-700">{{ visit.patient.phone }}</span></span>{% endif %}
+                </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">Visit</span>
+                <p class="font-mono font-bold text-primary text-sm">{{ visit.visit_number }}</p>
+                <span class="text-[11px] text-slate-400">{{ visit.get_visit_type_display }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="glass-card p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3">
+                <h3 class="font-bold text-white text-base">New Nursing Note (WHO SOAP Format)</h3>
+            </div>
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="visit_id" value="{{ visit.id }}">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-end">
+                        <span class="text-xs text-slate-500">By: <span class="font-semibold text-slate-700">{{ request.user.get_full_name|default:request.user.username }}</span></span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                <span class="text-blue-600">S</span> — Subjective
+                            </label>
+                            <textarea name="subjective" rows="4" class="input-field w-full" placeholder="Patient's complaints, symptoms, concerns..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                <span class="text-green-600">O</span> — Objective
+                            </label>
+                            <textarea name="objective" rows="4" class="input-field w-full" placeholder="Vital signs, physical exam findings, lab results..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                <span class="text-amber-600">A</span> — Assessment
+                            </label>
+                            <textarea name="assessment" rows="4" class="input-field w-full" placeholder="Nurse's clinical judgment..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                <span class="text-purple-600">P</span> — Plan
+                            </label>
+                            <textarea name="plan" rows="4" class="input-field w-full" placeholder="Interventions, patient education, follow-up..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end pt-4">
+                    <button type="submit" class="btn-primary text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Save SOAP Note
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="glass-card p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Patient Actions</h3>
+            </div>
+            <div class="space-y-3">
+                <button onclick="openDischargeModal()" class="w-full px-4 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all flex items-center gap-2 justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Discharge Patient
+                </button>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Notes History</h3>
+                <span class="text-xs font-bold text-white bg-white/20 px-3 py-1 rounded-full">{{ notes|length }} note{{ notes|length|pluralize }}</span>
+            </div>
+
+            {% if notes %}
+            <div class="space-y-3">
+                {% for note in notes %}
+                <div class="border border-slate-200 rounded-xl p-4 hover:bg-primary/5 transition-colors">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-500">{{ note.authored_at|date:"d M Y H:i" }}</span>
+                        <span class="text-xs font-semibold text-slate-600">{{ note.author.get_full_name|default:note.author.username }}</span>
+                    </div>
+                    {% if note.subjective or note.objective or note.assessment or note.plan %}
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        {% if note.subjective %}
+                        <div><span class="font-bold text-blue-600">S:</span> <span class="text-slate-700">{{ note.subjective }}</span></div>
+                        {% endif %}
+                        {% if note.objective %}
+                        <div><span class="font-bold text-green-600">O:</span> <span class="text-slate-700">{{ note.objective }}</span></div>
+                        {% endif %}
+                        {% if note.assessment %}
+                        <div><span class="font-bold text-amber-600">A:</span> <span class="text-slate-700">{{ note.assessment }}</span></div>
+                        {% endif %}
+                        {% if note.plan %}
+                        <div><span class="font-bold text-purple-600">P:</span> <span class="text-slate-700">{{ note.plan }}</span></div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-700">{{ note.note_text|linebreaksbr }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-slate-400 text-sm">
+                <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <p class="font-medium">No notes recorded yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if visit is None %}
+<script>
+    const searchInput = document.getElementById('visit-search');
+    const resultsContainer = document.getElementById('search-results');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+        if (query.length < 2) {
+            resultsContainer.classList.add('hidden');
+            return;
+        }
+        debounceTimer = setTimeout(() => searchForVisit(query), 300);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+            resultsContainer.classList.add('hidden');
+        }
+    });
+
+    async function searchForVisit(query) {
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 8);
+            resultsContainer.innerHTML = '';
+            resultsContainer.classList.remove('hidden');
+
+            if (patients.length === 0) {
+                resultsContainer.innerHTML = '<div class="px-4 py-4 text-center text-slate-400 text-sm">No patients found.</div>';
+                return;
+            }
+
+            for (const p of patients) {
+                try {
+                    const visitsRes = await API.getVisits('?patient=' + p.id + '&status=checked_in&status=in_triage&status=in_progress&status=open');
+                    const visits = visitsRes.results || visitsRes || [];
+                    for (const v of visits) {
+                        const item = document.createElement('a');
+                        item.href = '/clinical/nurse-notes/?visit_id=' + v.id;
+                        item.className = 'flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+                        item.innerHTML =
+                            '<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">' +
+                            Utils.escapeHtml((p.first_name || '')[0] || '') + Utils.escapeHtml((p.last_name || '')[0] || '') +
+                            '</div>' +
+                            '<div class="flex-1 min-w-0">' +
+                            '<p class="text-sm font-semibold text-slate-900 truncate">' + Utils.escapeHtml(p.first_name) + ' ' + Utils.escapeHtml(p.last_name) + '</p>' +
+                            '<p class="text-xs text-slate-500">MRN: ' + Utils.escapeHtml(p.mrn || '') + ' &bull; ' + Utils.escapeHtml(v.chief_complaint || 'No complaint') + '</p>' +
+                            '</div>' +
+                            '<span class="text-xs font-mono text-primary font-bold">' + Utils.escapeHtml(v.visit_number || '') + '</span>';
+                        resultsContainer.appendChild(item);
+                    }
+                } catch (e) { /* skip patient */ }
+            }
+
+            if (resultsContainer.children.length === 0) {
+                resultsContainer.innerHTML = '<div class="px-4 py-4 text-center text-slate-400 text-sm">No active visits found.</div>';
+            }
+        } catch (err) {
+            console.error('Search failed:', err);
+        }
+    }
+</script>
+{% endif %}
+
+{% if visit %}
+<script>
+function openDischargeModal() {
+    var followupDate = new Date();
+    followupDate.setDate(followupDate.getDate() + 7);
+    var defaultDate = followupDate.toISOString().slice(0, 10);
+    var bodyHTML = '<div class="space-y-4">' +
+        '<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 font-medium">' +
+        '<strong>Discharge Patient:</strong> This will mark the visit as completed and the patient will be discharged from the system.' +
+        '</div>' +
+        '<div>' +
+        '<label class="block text-xs font-bold text-slate-700 mb-1">Discharge Notes</label>' +
+        '<textarea id="discharge-notes" rows="3" class="input-field" placeholder="Discharge instructions, medications, follow-up plan..."></textarea>' +
+        '</div>' +
+        '<div class="flex items-center gap-2">' +
+        '<input type="checkbox" id="schedule-followup" class="rounded border-slate-300" checked onchange="document.getElementById(\'followup-fields\').style.display = this.checked ? \'\' : \'none\'">' +
+        '<label for="schedule-followup" class="text-xs font-bold text-slate-700">Schedule Follow-Up Visit</label>' +
+        '</div>' +
+        '<div id="followup-fields">' +
+        '<div class="grid grid-cols-2 gap-3">' +
+        '<div><label class="block text-xs font-bold text-slate-700 mb-1">Follow-Up Date</label><input type="date" id="followup-date" class="input-field" value="' + defaultDate + '"></div>' +
+        '<div><label class="block text-xs font-bold text-slate-700 mb-1">Reason</label><input type="text" id="followup-reason" class="input-field" placeholder="Follow-up reason"></div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+
+    Modal.show('Discharge Patient', bodyHTML, {
+        saveText: 'Discharge & Schedule Follow-Up',
+        onSave: async function() {
+            var visitId = '{{ visit.id }}';
+            var notes = document.getElementById('discharge-notes').value.trim();
+            var scheduleFollowup = document.getElementById('schedule-followup').checked;
+            var followupDate = document.getElementById('followup-date').value;
+            var followupReason = document.getElementById('followup-reason').value.trim();
+
+            try {
+                await API.updateVisitStatus(visitId, 'completed');
+                if (scheduleFollowup && followupDate) {
+                    await API.post('/clinical/appointments/', {
+                        patient: '{{ visit.patient.id }}',
+                        appointment_date: followupDate,
+                        appointment_type: 'follow_up',
+                        reason: followupReason || 'Follow-up visit',
+                        status: 'scheduled'
+                    });
+                }
+                showToast('Patient discharged successfully!', 'success');
+                setTimeout(function() { location.reload(); }, 1000);
+            } catch(e) {
+                showToast('Discharge failed: ' + (e.message || 'Unknown error'), 'error');
+            }
+        }
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

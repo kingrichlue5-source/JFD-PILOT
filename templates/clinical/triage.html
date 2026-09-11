@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+{% load export_tags %}
+
+{% block title %}Triage Workstation - JFD Hospital HMS{% endblock %}
+{% block page_title %}Clinical Triage & Vitals Assessment{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="glass-card accent-blue p-4 flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
+        <span class="text-slate-500 uppercase tracking-wider text-[11px]">Acuity Triage Scale:</span>
+        <div class="flex flex-wrap items-center gap-3">
+            <span class="px-3 py-1 rounded-full badge-danger">Level 1: STAT (Resuscitation)</span>
+            <span class="px-3 py-1 rounded-full badge-warning">Level 2: Urgent (Emergent)</span>
+            <span class="px-3 py-1 rounded-full badge-info">Level 3: Urgent (OPD)</span>
+            <span class="px-3 py-1 rounded-full badge-success">Level 4: Standard</span>
+            <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700">Level 5: Routine</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <div class="lg:col-span-5 glass-card accent-blue p-5 space-y-4">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="font-bold text-white text-base">Triage Queue</h3>
+                    {% export_buttons "triage" %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openClinicalFirstModal()" class="text-[11px] font-bold bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg transition-all flex items-center gap-1" title="Clinical-First: Triage before registration">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Clinical-First Triage
+                    </button>
+                    <span class="text-xs font-bold text-white bg-white/20 px-3 py-1 rounded-full" id="queue-count-badge">Loading...</span>
+                </div>
+            </div>
+
+            <div class="space-y-3 overflow-y-auto max-h-[500px]" id="triage-queue-container">
+            </div>
+        </div>
+
+        <div class="lg:col-span-7 glass-card accent-emerald p-6 space-y-5">
+            <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-white text-lg">Vital Signs & Clinical Assessment</h3>
+                    <p class="text-xs text-white/70" id="selected-patient-info">Select a patient from queue to begin triage</p>
+                </div>
+                <span class="text-xs font-mono font-bold text-white bg-white/20 px-3 py-1 rounded-lg" id="selected-visit-number">---</span>
+            </div>
+
+            <form method="post" action="{% url 'triage-dashboard-page' %}" class="space-y-5">
+                {% csrf_token %}
+                <input type="hidden" id="triage-visit-id" name="visit_id">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Chief Complaint *</label>
+                    <textarea id="triage-chief-complaint" name="chief_complaint" rows="2" required placeholder="Describe chief symptoms, onset, location..." class="input-field"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Temp (°C)</label>
+                        <input type="number" step="0.1" name="temperature" id="vital-temp" placeholder="37.0" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Heart Rate (BPM)</label>
+                        <input type="number" name="heart_rate" id="vital-hr" placeholder="72" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Resp Rate (/min)</label>
+                        <input type="number" name="respiratory_rate" id="vital-rr" placeholder="18" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">BP Systolic</label>
+                        <input type="number" name="blood_pressure_systolic" id="vital-sys" placeholder="120" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">BP Diastolic</label>
+                        <input type="number" name="blood_pressure_diastolic" id="vital-dia" placeholder="80" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">SpO2 (%)</label>
+                        <input type="number" step="0.1" name="oxygen_saturation" id="vital-spo2" placeholder="98" class="input-field">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Pain Scale (0-10)</label>
+                        <input type="number" name="pain_scale" id="triage-pain-scale" min="0" max="10" placeholder="0" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Blood Glucose (mg/dL)</label>
+                        <input type="number" step="0.1" name="blood_glucose" id="vital-glucose" placeholder="100" class="input-field">
+                    </div>
+                </div>
+
+                <div id="triage-suggest-box" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center gap-3 text-xs font-bold">
+                        <span class="text-slate-500 uppercase tracking-wider text-[10px]">Engine Suggestion:</span>
+                        <span id="suggest-acuity" class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">---</span>
+                        <span class="text-slate-400">→</span>
+                        <span id="suggest-dept" class="text-slate-700">---</span>
+                    </div>
+                    <ul id="suggest-rules" class="text-[11px] text-slate-600 space-y-0.5"></ul>
+                </div>
+
+                <div class="list-card p-4 space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Assign Acuity Priority Level *</label>
+                    <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="acuity_level" value="1" class="peer sr-only">
+                            <span class="block py-2 rounded-xl border border-red-300 bg-red-50 text-red-700 peer-checked:bg-red-600 peer-checked:text-white transition-all">Level 1</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="acuity_level" value="2" class="peer sr-only">
+                            <span class="block py-2 rounded-xl border border-orange-300 bg-orange-50 text-orange-700 peer-checked:bg-orange-600 peer-checked:text-white transition-all">Level 2</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="acuity_level" value="3" checked class="peer sr-only">
+                            <span class="block py-2 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 peer-checked:bg-amber-500 peer-checked:text-white transition-all">Level 3</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="acuity_level" value="4" class="peer sr-only">
+                            <span class="block py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 peer-checked:bg-emerald-600 peer-checked:text-white transition-all">Level 4</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="acuity_level" value="5" class="peer sr-only">
+                            <span class="block py-2 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 peer-checked:bg-blue-600 peer-checked:text-white transition-all">Level 5</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-2">
+                    <button type="submit" class="btn-primary text-xs flex items-center gap-2">
+                        <span>Complete Triage & Route Patient</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadTriageQueue() {
+        try {
+            const queue = await API.getTriageQueue();
+            const container = document.getElementById('triage-queue-container');
+            container.innerHTML = '';
+            document.getElementById('queue-count-badge').textContent = `${queue.length} Waiting`;
+
+            if (queue.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs font-medium">No patients currently waiting in triage queue.</div>`;
+                return;
+            }
+
+            queue.forEach((visit, idx) => {
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border cursor-pointer transition-all ${idx === 0 ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-slate-50 border-slate-200 hover:border-primary/30'}`;
+                card.onclick = () => selectPatientForTriage(visit);
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs font-bold text-primary">${visit.visit_number}</span>
+                        <span class="badge badge-warning text-[10px]">${visit.wait_minutes}m wait</span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-sm mt-1">${visit.patient_name}</h4>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">${visit.chief_complaint || 'No complaint listed'}</p>
+                `;
+                container.appendChild(card);
+            });
+
+            if (queue.length > 0) {
+                selectPatientForTriage(queue[0]);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function selectPatientForTriage(visit) {
+        document.getElementById('triage-visit-id').value = visit.id;
+        document.getElementById('selected-patient-info').textContent = `${visit.patient_name} (${visit.patient_gender === 'M' ? 'Male' : 'Female'}) - MRN: ${visit.patient_mrn}`;
+        document.getElementById('selected-visit-number').textContent = visit.visit_number;
+        document.getElementById('triage-chief-complaint').value = visit.chief_complaint || '';
+    }
+
+    loadTriageQueue();
+
+    /* ========== Real-time Triage Auto-Suggest ========== */
+    let suggestTimeout = null;
+    function debounceTriageSuggest() {
+        clearTimeout(suggestTimeout);
+        suggestTimeout = setTimeout(evaluateVitalsLive, 300);
+    }
+
+    async function evaluateVitalsLive() {
+        const temp = document.getElementById('vital-temp')?.value;
+        const hr = document.getElementById('vital-hr')?.value;
+        const rr = document.getElementById('vital-rr')?.value;
+        const sys = document.getElementById('vital-sys')?.value;
+        const dia = document.getElementById('vital-dia')?.value;
+        const spo2 = document.getElementById('vital-spo2')?.value;
+        const pain = document.getElementById('triage-pain-scale')?.value;
+
+        const hasAny = temp || hr || rr || sys || dia || spo2 || pain;
+        const box = document.getElementById('triage-suggest-box');
+        if (!hasAny) { if (box) box.classList.add('hidden'); return; }
+
+        try {
+            const res = await API.post('/clinical/triage-evaluate/', {
+                temperature: temp || null,
+                heart_rate: hr || null,
+                respiratory_rate: rr || null,
+                blood_pressure_systolic: sys || null,
+                blood_pressure_diastolic: dia || null,
+                oxygen_saturation: spo2 || null,
+                pain_scale: pain || null,
+            });
+
+            if (!box) return;
+            box.classList.remove('hidden');
+
+            const acuityColors = { 1: 'red', 2: 'orange', 3: 'amber', 4: 'emerald', 5: 'blue' };
+            const color = acuityColors[res.suggested_acuity] || 'slate';
+            document.getElementById('suggest-acuity').textContent = `Level ${res.suggested_acuity}`;
+            document.getElementById('suggest-acuity').className = `inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-${color}-100 text-${color}-700`;
+            document.getElementById('suggest-dept').textContent = res.suggested_department;
+
+            const rulesList = document.getElementById('suggest-rules');
+            if (res.matched_rules.length === 0) {
+                rulesList.innerHTML = '<li class="text-slate-400 text-[11px]">No criteria matched — default to Non-Urgent/OPD</li>';
+            } else {
+                rulesList.innerHTML = res.matched_rules.map(r =>
+                    `<li class="text-[11px]"><span class="font-bold text-slate-700">${r.name}</span>: ${r.vital_sign} ${r.operator} ${r.threshold} → <span class="font-bold">L${r.suggested_acuity}</span></li>`
+                ).join('');
+            }
+
+            const radio = document.querySelector(`input[name="acuity_level"][value="${res.suggested_acuity}"]`);
+            if (radio && !document.querySelector('input[name="acuity_level"]:checked')) {
+                radio.checked = true;
+            }
+        } catch (err) {
+            console.error('Triage evaluate error:', err);
+        }
+    }
+
+    document.querySelectorAll('#vital-temp, #vital-hr, #vital-rr, #vital-sys, #vital-dia, #vital-spo2, #triage-pain-scale').forEach(el => {
+        el.addEventListener('input', debounceTriageSuggest);
+    });
+
+    /* ========== Clinical-First Triage (Anonymous) ========== */
+    function openClinicalFirstModal() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 font-medium">
+                    <strong>Clinical-First Triage:</strong> Perform triage assessment before patient registration. A temporary visit will be created with status <code>pending_registration</code>. The registration clerk can complete formal registration later.
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Chief Complaint *</label>
+                    <textarea id="cf-chief-complaint" rows="2" required placeholder="Patient symptoms, onset, severity..." class="input-field"></textarea>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Temp (°C)</label>
+                        <input type="number" step="0.1" id="cf-temp" placeholder="37.0" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Heart Rate (BPM)</label>
+                        <input type="number" id="cf-hr" placeholder="72" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Resp Rate (/min)</label>
+                        <input type="number" id="cf-rr" placeholder="18" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">BP Systolic</label>
+                        <input type="number" id="cf-sys" placeholder="120" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">BP Diastolic</label>
+                        <input type="number" id="cf-dia" placeholder="80" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">SpO2 (%)</label>
+                        <input type="number" step="0.1" id="cf-spo2" placeholder="98" class="input-field">
+                    </div>
+                </div>
+                <div class="list-card p-4 space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Acuity Level *</label>
+                    <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold">
+                        <label class="cursor-pointer"><input type="radio" name="cf-acuity" value="1" class="peer sr-only"><span class="block py-2 rounded-xl border border-red-300 bg-red-50 text-red-700 peer-checked:bg-red-600 peer-checked:text-white transition-all">1-STAT</span></label>
+                        <label class="cursor-pointer"><input type="radio" name="cf-acuity" value="2" class="peer sr-only"><span class="block py-2 rounded-xl border border-orange-300 bg-orange-50 text-orange-700 peer-checked:bg-orange-600 peer-checked:text-white transition-all">2-Emergent</span></label>
+                        <label class="cursor-pointer"><input type="radio" name="cf-acuity" value="3" checked class="peer sr-only"><span class="block py-2 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 peer-checked:bg-amber-500 peer-checked:text-white transition-all">3-Urgent</span></label>
+                        <label class="cursor-pointer"><input type="radio" name="cf-acuity" value="4" class="peer sr-only"><span class="block py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 peer-checked:bg-emerald-600 peer-checked:text-white transition-all">4-Standard</span></label>
+                        <label class="cursor-pointer"><input type="radio" name="cf-acuity" value="5" class="peer sr-only"><span class="block py-2 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 peer-checked:bg-blue-600 peer-checked:text-white transition-all">5-Routine</span></label>
+                    </div>
+                </div>
+            </div>`;
+        Modal.show('Clinical-First Triage (Anonymous)', bodyHTML, {
+            saveText: 'Submit Triage',
+            onSave: async () => {
+                const acuityEl = document.querySelector('input[name="cf-acuity"]:checked');
+                if (!acuityEl) { showToast('Select an acuity level', 'error'); return; }
+                const data = {
+                    chief_complaint: document.getElementById('cf-chief-complaint').value,
+                    acuity_level: parseInt(acuityEl.value),
+                    temperature: document.getElementById('cf-temp').value || null,
+                    heart_rate: document.getElementById('cf-hr').value || null,
+                    respiratory_rate: document.getElementById('cf-rr').value || null,
+                    blood_pressure_systolic: document.getElementById('cf-sys').value || null,
+                    blood_pressure_diastolic: document.getElementById('cf-dia').value || null,
+                    oxygen_saturation: document.getElementById('cf-spo2').value || null,
+                };
+                try {
+                    const res = await API.post('/clinical/triage-first/', data);
+                    const visitNum = res.visit_number || res.visit?.visit_number || 'N/A';
+                    showToast(`Clinical-First Triage submitted! Visit: ${visitNum} (pending registration)`, 'success');
+                } catch (err) {
+                    showToast('Error: ' + err.message, 'error');
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

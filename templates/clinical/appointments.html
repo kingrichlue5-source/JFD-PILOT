@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% load static %}
+{% load export_tags %}
+
+{% block title %}Appointments - JFD Hospital HMS{% endblock %}
+{% block page_title %}Appointment Management{% endblock %}
+{% block page_subtitle %}Schedule, manage, and track patient appointments{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today's Appointments</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-today">-</h3>
+                <span class="badge badge-info text-[10px]">Scheduled</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Completed</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-completed">-</h3>
+                <span class="badge badge-success text-[10px]">Done</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Checked In</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-checkedin">-</h3>
+                <span class="badge badge-warning text-[10px]">Waiting</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l2-2m-2 2l-2-2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">No-Shows</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-noshow">-</h3>
+                <span class="badge badge-danger text-[10px]">Missed</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-blue p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h3 class="font-bold text-white text-base">Appointments</h3>
+                {% export_buttons "appointments" %}
+                <div class="flex items-center gap-2">
+                    <input type="date" id="filter-date" class="input-field text-xs py-1.5" onchange="loadAppointments()">
+                    <select id="filter-status" class="input-field text-xs py-1.5" onchange="loadAppointments()">
+                        <option value="">All Status</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="checked_in">Checked In</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="no_show">No Show</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="openNewAppointment()" class="btn-primary text-xs">+ New Appointment</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th class="pb-3 px-3">Patient</th>
+                        <th class="pb-3 px-3">Date & Time</th>
+                        <th class="pb-3 px-3">Type</th>
+                        <th class="pb-3 px-3">Provider</th>
+                        <th class="pb-3 px-3">Department</th>
+                        <th class="pb-3 px-3">Status</th>
+                        <th class="pb-3 px-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appointments-body" class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                    <tr><td colspan="7" class="py-8 text-center text-slate-400 text-sm">Loading appointments...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allAppointments = [];
+
+    async function loadAppointments() {
+        try {
+            const dateFrom = document.getElementById('filter-date').value;
+            const status = document.getElementById('filter-status').value;
+            let params = '?page_size=500';
+            if (dateFrom) params += '&date_from=' + dateFrom;
+            if (status) params += '&status=' + status;
+
+            const res = await API.getAppointments(params);
+            allAppointments = res.results || res || [];
+
+            const today = new Date().toISOString().split('T')[0];
+            const todayAppts = allAppointments.filter(a => a.appointment_date === today);
+            document.getElementById('stat-today').textContent = todayAppts.length;
+            document.getElementById('stat-completed').textContent = allAppointments.filter(a => a.status === 'completed').length;
+            document.getElementById('stat-checkedin').textContent = allAppointments.filter(a => a.status === 'checked_in').length;
+            document.getElementById('stat-noshow').textContent = allAppointments.filter(a => a.status === 'no_show').length;
+
+            renderAppointments(allAppointments);
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to load appointments', 'error');
+        }
+    }
+
+    function renderAppointments(list) {
+        const tbody = document.getElementById('appointments-body');
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400 text-sm">No appointments found</td></tr>';
+            return;
+        }
+        const statusColors = { scheduled: 'info', confirmed: 'success', checked_in: 'warning', in_progress: 'primary', completed: 'success', cancelled: 'danger', no_show: 'danger', rescheduled: 'info' };
+        const typeLabels = { consultation: 'Consultation', follow_up: 'Follow-up', procedure: 'Procedure', lab_only: 'Lab Only', imaging: 'Imaging', vaccination: 'Vaccination', antenatal: 'Antenatal', postnatal: 'Postnatal' };
+
+        tbody.innerHTML = list.map(a => `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="py-3 px-3">
+                    <p class="font-bold text-slate-900 text-xs">${Utils.escapeHtml(a.patient_name || '')}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">${Utils.escapeHtml(a.patient_mrn || '')}</p>
+                </td>
+                <td class="py-3 px-3 text-xs">
+                    <p class="font-medium">${a.appointment_date || '-'}</p>
+                    <p class="text-slate-400">${a.appointment_time ? a.appointment_time.substring(0, 5) : ''} (${a.duration_minutes || 30}min)</p>
+                </td>
+                <td class="py-3 px-3 text-xs">${typeLabels[a.appointment_type] || a.appointment_type || '-'}</td>
+                <td class="py-3 px-3 text-xs">${Utils.escapeHtml(a.provider_name || '-')}</td>
+                <td class="py-3 px-3 text-xs">${Utils.escapeHtml(a.department || '-')}</td>
+                <td class="py-3 px-3"><span class="badge badge-${statusColors[a.status] || 'info'} text-[10px]">${(a.status || 'scheduled').replace('_', ' ')}</span></td>
+                <td class="py-3 px-3 text-right space-x-1">
+                    ${a.status === 'scheduled' ? `<button onclick="updateApptStatus('${a.id}', 'confirmed')" class="px-2 py-1 text-[10px] font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg">Confirm</button>` : ''}
+                    ${['scheduled', 'confirmed'].includes(a.status) ? `<button onclick="checkInAppointment('${a.id}', '${a.patient}', '${Utils.escapeHtml(a.reason || '')}')" class="px-2 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg">Check In</button>` : ''}
+                    ${a.status === 'checked_in' ? `<button onclick="updateApptStatus('${a.id}', 'in_progress')" class="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Start</button>` : ''}
+                    ${a.status === 'in_progress' ? `<button onclick="updateApptStatus('${a.id}', 'completed')" class="px-2 py-1 text-[10px] font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg">Complete</button>` : ''}
+                    ${['scheduled', 'confirmed'].includes(a.status) ? `<button onclick="updateApptStatus('${a.id}', 'cancelled')" class="px-2 py-1 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg">Cancel</button>` : ''}
+                    ${['scheduled', 'confirmed'].includes(a.status) ? `<button onclick="updateApptStatus('${a.id}', 'no_show')" class="px-2 py-1 text-[10px] font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg">No Show</button>` : ''}
+                    ${['scheduled', 'confirmed'].includes(a.status) ? `<button onclick="openRescheduleModal('${a.id}', '${a.appointment_date}', '${a.appointment_time || ''}')" class="px-2 py-1 text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg">Reschedule</button>` : ''}
+                </td>
+            </tr>`).join('');
+    }
+
+    async function updateApptStatus(id, status) {
+        try {
+            await API.patch('/clinical/appointments/' + id + '/', { status });
+            showToast('Appointment ' + status.replace('_', ' ') + '!', 'success');
+            loadAppointments();
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+        }
+    }
+
+    function openNewAppointment() {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Patient *</label>
+                    <input type="text" id="appt-patient-search" placeholder="Search patient by name or MRN..." class="input-field" oninput="searchApptPatient(this.value)">
+                    <div id="appt-patient-results" class="mt-1 space-y-1 hidden"></div>
+                    <input type="hidden" id="appt-patient-id">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Appointment Date *</label>
+                        <input type="date" id="appt-date" class="input-field" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Appointment Time *</label>
+                        <input type="time" id="appt-time" class="input-field" value="09:00">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Type *</label>
+                        <select id="appt-type" class="input-field">
+                            <option value="consultation">Consultation</option>
+                            <option value="follow_up">Follow-up</option>
+                            <option value="procedure">Procedure</option>
+                            <option value="lab_only">Lab Only</option>
+                            <option value="imaging">Imaging</option>
+                            <option value="vaccination">Vaccination</option>
+                            <option value="antenatal">Antenatal</option>
+                            <option value="postnatal">Postnatal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Duration (min)</label>
+                        <select id="appt-duration" class="input-field">
+                            <option value="15">15 min</option>
+                            <option value="30" selected>30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">60 min</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Provider</label>
+                    <input type="text" id="appt-provider" class="input-field" placeholder="Doctor name (optional)">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Reason / Notes</label>
+                    <textarea id="appt-reason" rows="2" class="input-field" placeholder="Reason for appointment..."></textarea>
+                </div>
+            </div>`;
+        Modal.show('Schedule New Appointment', bodyHTML, {
+            saveText: 'Schedule Appointment',
+            onSave: async () => {
+                const patientId = document.getElementById('appt-patient-id').value;
+                if (!patientId) throw new Error('Please select a patient');
+
+                await API.createAppointment({
+                    patient: patientId,
+                    appointment_date: document.getElementById('appt-date').value,
+                    appointment_time: document.getElementById('appt-time').value,
+                    appointment_type: document.getElementById('appt-type').value,
+                    duration_minutes: document.getElementById('appt-duration').value,
+                    reason: document.getElementById('appt-reason').value.trim(),
+                    status: 'scheduled'
+                });
+                showToast('Appointment scheduled!', 'success');
+                loadAppointments();
+            }
+        });
+    }
+
+    async function checkInAppointment(apptId, patientId, reason) {
+        try {
+            showToast('Checking payment status...', 'info');
+            const invoicesRes = await API.getInvoices('?patient=' + patientId).catch(() => ({ results: [] }));
+            const invoices = invoicesRes.results || invoicesRes || [];
+            const unpaid = invoices.filter(i => i.status !== 'paid' && i.status !== 'waived' && i.balance_due > 0);
+            if (unpaid.length > 0) {
+                const invoice = unpaid[0];
+                Modal.show('Payment Required', `
+                    <div class="space-y-3">
+                        <p class="text-sm text-slate-700">This patient has an outstanding invoice that must be paid before check-in.</p>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <p class="text-xs font-bold text-amber-800">Invoice: ${invoice.invoice_number}</p>
+                            <p class="text-xs text-amber-700">Balance Due: L$${parseFloat(invoice.balance_due).toFixed(2)}</p>
+                        </div>
+                        <p class="text-xs text-slate-500">Please process payment at the Cashier desk (/cashier/) before checking in.</p>
+                    </div>
+                `, { hideSave: true });
+                return;
+            }
+            showToast('Creating visit and checking in...', 'info');
+            const visitRes = await API.createVisit({
+                patient: patientId,
+                visit_type: 'opd',
+                chief_complaint: reason || 'Follow-up visit',
+                is_follow_up: true,
+            });
+            const visitId = visitRes.id;
+            await API.patch('/clinical/appointments/' + apptId + '/', {
+                visit: visitId,
+                status: 'checked_in',
+            });
+            await API.updateVisitStatus(visitId, 'checked_in');
+            showToast('Visit created and patient checked in!', 'success');
+            setTimeout(() => {
+                window.location.href = '/clinical/triage/';
+            }, 800);
+        } catch (err) {
+            showToast('Error: ' + (err.message || err), 'error');
+        }
+    }
+
+    function openRescheduleModal(apptId, currentDate, currentTime) {
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">New Date *</label>
+                    <input type="date" id="reschedule-date" class="input-field" value="${currentDate}">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">New Time *</label>
+                    <input type="time" id="reschedule-time" class="input-field" value="${currentTime ? currentTime.substring(0, 5) : '09:00'}">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Reason for Reschedule</label>
+                    <textarea id="reschedule-reason" rows="2" class="input-field" placeholder="e.g. Patient requested change"></textarea>
+                </div>
+            </div>`;
+        Modal.show('Reschedule Appointment', bodyHTML, {
+            saveText: 'Confirm Reschedule',
+            onSave: async () => {
+                const newDate = document.getElementById('reschedule-date').value;
+                const newTime = document.getElementById('reschedule-time').value;
+                if (!newDate || !newTime) throw new Error('Date and time are required');
+                await API.patch('/clinical/appointments/' + apptId + '/', {
+                    appointment_date: newDate,
+                    appointment_time: newTime,
+                    status: 'rescheduled',
+                    notes: document.getElementById('reschedule-reason').value.trim() || undefined,
+                });
+                showToast('Appointment rescheduled!', 'success');
+                loadAppointments();
+            }
+        });
+    }
+
+    async function searchApptPatient(query) {
+        const resultsDiv = document.getElementById('appt-patient-results');
+        if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            patients.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(p.first_name)} ${Utils.escapeHtml(p.last_name)}</span> <span class="text-slate-400">${Utils.escapeHtml(p.mrn)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('appt-patient-id').value = p.id;
+                    document.getElementById('appt-patient-search').value = `${p.first_name} ${p.last_name} (${p.mrn})`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (patients.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No patients found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    loadAppointments();
+</script>
+{% endblock %}

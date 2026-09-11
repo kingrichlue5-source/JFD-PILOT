@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Triage Criteria - JFD Hospital HMS{% endblock %}
+{% block page_title %}Triage Criteria Matrix{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter max-w-6xl">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="p-3 rounded-xl text-sm font-medium {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-700{% elif message.tags == 'error' %}bg-red-50 border border-red-200 text-red-700{% else %}bg-blue-50 border border-blue-200 text-blue-700{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Header -->
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+                <h3 class="font-bold text-base section-header-gradient px-3 py-1 rounded-lg">Algorithmic Triage Engine Configuration</h3>
+                <p class="text-xs text-slate-500 mt-1">Define vital sign thresholds that auto-suggest acuity levels and department routing. Clinician judgment is always final.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">{{ active_count }} Active</span>
+                <span class="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-bold rounded-full border border-slate-200">{{ inactive_count }} Inactive</span>
+            </div>
+        </div>
+
+        <!-- Create New Rule Form -->
+        <form method="post" class="mt-5">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Rule Name *</label>
+                    <input name="name" required placeholder="e.g. Severe Hypotension" class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Vital Sign *</label>
+                    <select name="vital_sign" required class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="blood_pressure_systolic">Systolic BP</option>
+                        <option value="blood_pressure_diastolic">Diastolic BP</option>
+                        <option value="heart_rate">Heart Rate</option>
+                        <option value="oxygen_saturation">SpO2</option>
+                        <option value="temperature">Temperature</option>
+                        <option value="respiratory_rate">Respiratory Rate</option>
+                        <option value="pain_scale">Pain Scale</option>
+                        <option value="blood_glucose">Blood Glucose</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Operator *</label>
+                    <select name="operator" required class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="lt">&lt; Less Than</option>
+                        <option value="lte">&lt;= Less/Equal</option>
+                        <option value="gt">&gt; Greater Than</option>
+                        <option value="gte">&gt;= Greater/Equal</option>
+                        <option value="eq">= Equal</option>
+                        <option value="between">Between</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Threshold *</label>
+                    <input name="threshold_low" type="number" step="0.01" required placeholder="90" class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">High (for between)</label>
+                    <input name="threshold_high" type="number" step="0.01" placeholder="180" class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Acuity *</label>
+                    <select name="suggested_acuity" required class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="1">1 - Resuscitation</option>
+                        <option value="2">2 - Emergent</option>
+                        <option value="3" selected>3 - Urgent</option>
+                        <option value="4">4 - Less Urgent</option>
+                        <option value="5">5 - Non-Urgent</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Department *</label>
+                    <select name="suggested_department" required class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="ER">Emergency Room</option>
+                        <option value="OPD" selected>Outpatient Dept</option>
+                        <option value="IPD">Inpatient Dept</option>
+                        <option value="OBGYN">OB/GYN</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="btn-primary w-full text-xs py-1.5">+ Add Rule</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Acuity Legend -->
+    <div class="glass-card p-4 accent-blue">
+        <h4 class="font-bold text-slate-900 text-xs mb-3">Acuity Level Legend</h4>
+        <div class="grid grid-cols-5 gap-2">
+            <div class="flex items-center gap-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                <span class="w-6 h-6 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">1</span>
+                <span class="text-[10px] font-bold text-red-700">Resuscitation</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                <span class="w-6 h-6 flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold rounded-full">2</span>
+                <span class="text-[10px] font-bold text-orange-700">Emergent</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                <span class="w-6 h-6 flex items-center justify-center bg-yellow-500 text-white text-[10px] font-bold rounded-full">3</span>
+                <span class="text-[10px] font-bold text-yellow-700">Urgent</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <span class="w-6 h-6 flex items-center justify-center bg-blue-500 text-white text-[10px] font-bold rounded-full">4</span>
+                <span class="text-[10px] font-bold text-blue-700">Less Urgent</span>
+            </div>
+            <div class="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                <span class="w-6 h-6 flex items-center justify-center bg-green-500 text-white text-[10px] font-bold rounded-full">5</span>
+                <span class="text-[10px] font-bold text-green-700">Non-Urgent</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Criteria Table -->
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900 text-sm">Active Criteria Rules</h3>
+        </div>
+
+        {% if criteria %}
+        <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-slate-100">
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Rule Name</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Vital Sign</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Condition</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Acuity</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Department</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Priority</th>
+                        <th class="text-left py-2 px-3 font-bold text-slate-600">Status</th>
+                        <th class="text-right py-2 px-3 font-bold text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in criteria %}
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                        <td class="py-2 px-3 font-medium text-slate-900">{{ rule.name }}</td>
+                        <td class="py-2 px-3 text-slate-600">{{ rule.get_vital_sign_display }}</td>
+                        <td class="py-2 px-3 text-slate-600">
+                            {{ rule.get_operator_display }} {{ rule.threshold_low }}{% if rule.threshold_high %} - {{ rule.threshold_high }}{% endif %}
+                        </td>
+                        <td class="py-2 px-3">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {% if rule.suggested_acuity == 1 %}bg-red-100 text-red-700
+                                {% elif rule.suggested_acuity == 2 %}bg-orange-100 text-orange-700
+                                {% elif rule.suggested_acuity == 3 %}bg-yellow-100 text-yellow-700
+                                {% elif rule.suggested_acuity == 4 %}bg-blue-100 text-blue-700
+                                {% else %}bg-green-100 text-green-700{% endif %}">
+                                {{ rule.suggested_acuity }} - {{ rule.get_suggested_acuity_display }}
+                            </span>
+                        </td>
+                        <td class="py-2 px-3 text-slate-600">{{ rule.suggested_department }}</td>
+                        <td class="py-2 px-3 text-slate-500">{{ rule.priority }}</td>
+                        <td class="py-2 px-3">
+                            {% if rule.is_active %}
+                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">Active</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 px-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <form method="post" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="criterion_id" value="{{ rule.id }}">
+                                    <button type="submit" class="px-2 py-0.5 text-[10px] font-bold rounded-lg border
+                                        {% if rule.is_active %}border-amber-200 text-amber-600 hover:bg-amber-50{% else %}border-emerald-200 text-emerald-600 hover:bg-emerald-50{% endif %}">
+                                        {% if rule.is_active %}Deactivate{% else %}Activate{% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" class="inline" onsubmit="return confirm('Delete this rule?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="criterion_id" value="{{ rule.id }}">
+                                    <button type="submit" class="px-2 py-0.5 text-[10px] font-bold rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mt-6 p-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-sm font-bold text-slate-500">No triage criteria configured</p>
+            <p class="text-xs text-slate-400 mt-1">Add rules above to enable algorithmic triage suggestions.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

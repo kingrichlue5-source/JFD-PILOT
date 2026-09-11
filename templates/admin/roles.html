@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Role Management - JFD Hospital HMS{% endblock %}
+{% block page_title %}Role & Permission Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Roles</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_roles }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Permissions</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_permissions }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">System Roles</p>
+                <h3 class="text-2xl font-bold text-slate-900">{% for r in roles %}{% if r.is_system_role %}{% cycle 1 2 3 4 5 %}{% endif %}{% endfor %}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card p-5 accent-blue">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">Roles</h3>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="role-search" placeholder="Search roles..." class="input-field text-xs w-48" oninput="filterRoles()">
+                    <button onclick="openRoleModal()" class="btn-primary text-xs">+ Create Role</button>
+                </div>
+            </div>
+            <div class="space-y-3 mt-4" id="roles-list">
+                {% for role in roles %}
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 hover:border-primary/30 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-900 text-sm">{{ role.name }}</span>
+                                <span class="font-mono text-[10px] text-slate-400">({{ role.code }})</span>
+                                {% if role.is_system_role %}
+                                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">System</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">{{ role.description|default:"No description" }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openRoleModal('{{ role.id }}', '{{ role.name }}', '{{ role.code }}', '{{ role.description|default:"" }}')" class="px-3 py-1 text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all">Edit</button>
+                            <button onclick="openPermissionModal('{{ role.id }}', '{{ role.name }}')" class="px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all">Permissions</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        {% for key, perms in role_permissions_map.items %}
+                            {% if key == role.id|slugify %}
+                                {% for p in perms %}
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold">{{ p.code }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-center text-slate-400 text-xs py-4">No roles created yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-card p-5 accent-emerald">
+            <div class="pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">Available Permissions</h3>
+                <p class="text-xs text-slate-500 mt-1">Assign permissions to roles via the Permissions button</p>
+            </div>
+            <div class="space-y-3 mt-4 max-h-[500px] overflow-y-auto">
+                {% regroup permissions by category as cat_list %}
+                {% for cat in cat_list %}
+                <div>
+                    <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">{{ cat.grouper }}</h4>
+                    <div class="space-y-1">
+                        {% for perm in cat.list %}
+                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-xs">
+                            <div>
+                                <span class="font-bold text-slate-900">{{ perm.name }}</span>
+                                <span class="text-slate-400 ml-1">({{ perm.code }})</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="role-modal" class="hidden modal-overlay" onclick="if(event.target===this)closeRoleModal()">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="role-modal-title">Create Role</h3>
+            <button onclick="closeRoleModal()" class="modal-close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form method="post" class="modal-body space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create" id="role-form-action">
+            <input type="hidden" name="role_id" id="role-form-id" value="">
+            <div><label>Role Name *</label><input type="text" name="name" id="role-form-name" class="input-field" required></div>
+            <div><label>Role Code *</label><input type="text" name="code" id="role-form-code" class="input-field" required></div>
+            <div><label>Description</label><textarea name="description" id="role-form-desc" class="input-field" rows="3"></textarea></div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" onclick="closeRoleModal()" class="btn-outline">Cancel</button>
+            <button type="button" onclick="document.querySelector('#role-modal form').submit()" class="btn-primary">Save Role</button>
+        </div>
+    </div>
+</div>
+
+<div id="permission-modal" class="hidden modal-overlay" onclick="if(event.target===this)closePermissionModal()">
+    <div class="modal-container modal-lg">
+        <div class="modal-header">
+            <h3>Manage Permissions: <span id="perm-role-name" class="text-primary"></span></h3>
+            <button onclick="closePermissionModal()" class="modal-close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body space-y-2" id="permission-list"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function debounce(fn, ms) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+function filterRoles() {
+    const query = document.getElementById('role-search').value.toLowerCase();
+    const items = document.querySelectorAll('#roles-list > div');
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+function openRoleModal(id, name, code, desc) {
+    document.getElementById('role-modal-title').textContent = id ? 'Edit Role' : 'Create Role';
+    document.getElementById('role-form-action').value = id ? 'edit' : 'create';
+    document.getElementById('role-form-id').value = id || '';
+    document.getElementById('role-form-name').value = name || '';
+    document.getElementById('role-form-code').value = code || '';
+    document.getElementById('role-form-desc').value = desc || '';
+    document.getElementById('role-modal').classList.remove('hidden');
+}
+function closeRoleModal() { document.getElementById('role-modal').classList.add('hidden'); }
+
+function openPermissionModal(roleId, roleName) {
+    document.getElementById('perm-role-name').textContent = roleName;
+    const container = document.getElementById('permission-list');
+    container.innerHTML = '<p class="text-xs text-slate-400">Loading permissions...</p>';
+    document.getElementById('permission-modal').classList.remove('hidden');
+
+    fetch('/api/auth/check-permission/', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': API.getCSRFToken()}, credentials: 'same-origin', body: JSON.stringify({permission_code: 'manage_roles'})})
+        .then(() => {
+            const allPerms = {{ permissions_json|safe }};
+            const rolePerms = {{ role_permissions_map_json|safe }};
+            const assigned = Object.keys(rolePerms).includes(roleId) ? rolePerms[roleId].map(p => p.id || p) : [];
+            container.innerHTML = '';
+            allPerms.forEach(p => {
+                const isAssigned = assigned.some(a => (a.id || a) === p.id);
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div><span class="font-bold text-xs text-slate-900">${p.name}</span><span class="text-[10px] text-slate-400 ml-1">(${p.code})</span></div>
+                        <form method="post" style="display:contents">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="${isAssigned ? 'remove_permission' : 'assign_permission'}">
+                            <input type="hidden" name="role_id" value="${roleId}">
+                            <input type="hidden" name="permission_id" value="${p.id}">
+                            <button type="submit" class="px-2 py-0.5 text-[11px] font-bold ${isAssigned ? 'text-red-600 bg-red-50 hover:bg-red-100 rounded-lg' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg'} transition-all">${isAssigned ? 'Remove' : 'Assign'}</button>
+                        </form>
+                    </div>`;
+            });
+        });
+}
+function closePermissionModal() { document.getElementById('permission-modal').classList.add('hidden'); }
+</script>
+{% endblock %}

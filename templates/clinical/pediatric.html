@@ -1,0 +1,714 @@
+{% extends "base.html" %}
+{% load static %}
+{% load export_tags %}
+
+{% block title %}Pediatric Assessment - JFD Hospital HMS{% endblock %}
+{% block page_title %}Pediatric Patient Evaluation Form for Nurses{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    {% if not visit %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Pediatric Patients</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-total">{{ patient_data|length }}</h3>
+                <span class="badge badge-info text-[10px]">Under 18</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon pink">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Assessments</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-assessments">{{ patient_data|length }}</h3>
+                <span class="badge badge-success text-[10px]">Records</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Today</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-today">0</h3>
+                <span class="badge badge-warning text-[10px]">New</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Active Visits</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-active">0</h3>
+                <span class="badge badge-danger text-[10px]">Needs Care</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-blue p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h3 class="font-bold text-white text-base">Pediatric Patient Registry</h3>
+                {% export_buttons "patients" %}
+            </div>
+            <input type="text" id="ped-filter-input" class="input-field w-64 text-xs" placeholder="Filter patients..." oninput="filterPediatricPatients(this.value)">
+        </div>
+        <div id="ped-patient-list" class="space-y-3 overflow-y-auto max-h-[400px]">
+            {% for item in patient_data %}
+            <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-xl ped-patient-card" data-name="{{ item.patient.first_name }} {{ item.patient.last_name }}" data-mrn="{{ item.patient.mrn }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-slate-900 text-sm">{{ item.patient.first_name }} {{ item.patient.last_name }}</span>
+                        <span class="text-slate-400 text-xs ml-2">{{ item.patient.mrn }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="badge badge-info text-[10px]">Age {{ item.age_years }}y</span>
+                        <span class="badge badge-success text-[10px]">{{ item.assessment_count }} assessment{{ item.assessment_count|pluralize }}</span>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">DOB: {{ item.patient.date_of_birth|date:"Y-m-d" }} | {{ item.patient.gender }}</p>
+                {% if item.assessments %}
+                <div class="mt-2 space-y-1">
+                    {% for a in item.assessments %}
+                    <div class="flex items-center gap-2 text-[10px]">
+                        <span class="text-slate-400">{{ a.created_at|date:"Y-m-d H:i" }}</span>
+                        <span class="text-slate-600">{{ a.child_problem|default:"No complaint" }}</span>
+                        {% if a.provisional_diagnosis %}
+                        <span class="badge badge-warning text-[10px]">{{ a.provisional_diagnosis }}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="mt-2">
+                    <button onclick="window.location.href='/clinical/pediatric/?visit_id={{ item.assessments.0.visit.id|default:"" }}'" class="text-xs font-bold text-blue-700 hover:underline">View Assessment</button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-6 text-slate-400 text-xs">No pediatric patients found. Seed demo data first.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="glass-card accent-purple p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-4 py-3">
+            <h3 class="font-bold text-white text-base">Find Patient Visit for New Assessment</h3>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Search Patient or Visit</label>
+            <input type="text" id="ped-search-input" class="input-field" placeholder="Type name, MRN, or visit number..." oninput="searchForVisit(this.value)">
+        </div>
+        <div id="ped-search-results" class="space-y-2 hidden max-h-[300px] overflow-y-auto"></div>
+    </div>
+    {% endif %}
+
+    {% if visit %}
+    <form method="post" action="{% url 'pediatric-page' %}" id="ped-assessment-form">
+        {% csrf_token %}
+        <input type="hidden" name="visit_id" value="{{ visit.id }}">
+
+        <!-- 1. Hospital Header -->
+        <div class="glass-card p-6 text-center space-y-1 mb-6">
+            <h2 class="text-lg font-bold text-slate-900">Jackson F. Doe Memorial Regional Referral Hospital</h2>
+            <p class="text-sm font-semibold text-slate-600">Pediatric Patient Evaluation Form for Nurses</p>
+        </div>
+
+        <!-- 2. Patient Header -->
+        <div class="glass-card p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-xl shadow-lg" id="patient-initials">{{ patient_initials }}</div>
+                <div>
+                    <h3 class="font-bold text-xl leading-none">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</h3>
+                    <p class="text-xs text-slate-300 mt-1">MRN: {{ visit.patient.mrn }} &bull; Visit: {{ visit.visit_number }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 text-sm">
+                <div class="text-center">
+                    <span class="text-[11px] text-slate-400 block font-medium">Age</span>
+                    <span class="font-bold text-white">{{ patient_age|default:"-" }}</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-[11px] text-slate-400 block font-medium">Sex</span>
+                    <span class="font-bold text-white">{{ patient_sex|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+
+            <!-- 3. Arrival Info -->
+            <div class="glass-card accent-blue p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Arrival Information</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">Mode of Arrival *</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="mode_of_arrival" value="walk_in" class="w-4 h-4 accent-[var(--blue-500)]" checked>
+                                <span class="text-sm font-medium text-slate-700">Walk-in</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="mode_of_arrival" value="ambulance" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Ambulance</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="mode_of_arrival" value="referred" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Referred</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="mode_of_arrival" value="private_vehicle" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Private Vehicle</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Chief Complaint -->
+            <div class="glass-card accent-rose p-6 space-y-3">
+                <h4 class="section-title">
+                    <span>Chief Complaint</span>
+                </h4>
+                <div>
+                    <textarea name="chief_complaint" rows="3" required class="input-field" placeholder="Describe the patient's main complaint...">{{ data.chief_complaint|default:"" }}</textarea>
+                </div>
+            </div>
+
+            <!-- 5. Danger Signs -->
+            <div class="glass-card accent-red p-6 space-y-4">
+                <h4 class="section-title">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Danger Signs (Flagged Immediately)
+                    </span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_dyspnea" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Dyspnea</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_severe_dehydration" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Severe Dehydration</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_altered_consciousness" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Altered Consciousness</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_seizures" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Seizures</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_severe_pallor" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Severe Pallor</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_severe_malnutrition" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Severe Malnutrition</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="danger_suspected_meningitis" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Suspected Meningitis</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 6. Diarrhea Assessment -->
+            <div class="glass-card accent-amber p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Diarrhea Assessment</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Duration</label>
+                        <input type="text" name="diarrhea_duration" class="input-field" placeholder="e.g. 3 days" value="{{ data.diarrhea_duration|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Estimated Stools</label>
+                        <input type="number" name="diarrhea_stools" class="input-field" placeholder="e.g. 5" value="{{ data.diarrhea_stools|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Consistency</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_consistency" value="watery" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Watery</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_consistency" value="mucoid" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Mucoid</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_consistency" value="bloody" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Bloody</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Vomiting</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_vomiting" value="yes" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_vomiting" value="no" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ORS Intake</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_ors" value="yes" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="diarrhea_ors" value="no" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Dehydration Assessment -->
+            <div class="glass-card accent-cyan p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Dehydration Assessment</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Status</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="dehydration_status" value="no_dehydration" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No Dehydration</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="dehydration_status" value="some" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Some Dehydration</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="dehydration_status" value="severe" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Severe Dehydration</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label>
+                        <input type="number" step="0.1" name="dehydration_weight" class="input-field" placeholder="e.g. 12.5" value="{{ data.dehydration_weight|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Capillary Refill</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="dehydration_crt" value="normal" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Normal (&ge; 2s)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="dehydration_crt" value="prolonged" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Prolonged (&gt; 2s)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Respiratory Assessment -->
+            <div class="glass-card accent-emerald p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Respiratory Assessment</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Status</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="no_respiratory_distress" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No Respiratory Distress</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="pneumonia" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Pneumonia</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="severe_pneumonia" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Severe Pneumonia</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="asthma" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Asthma</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="severe_asthma" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Severe Asthma</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_status" value="other" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Other</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label>
+                        <input type="number" step="0.1" name="respiratory_weight" class="input-field" placeholder="e.g. 10.0" value="{{ data.respiratory_weight|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Respiratory Rate (breaths/min)</label>
+                        <input type="number" name="respiratory_rr" class="input-field" placeholder="e.g. 30" value="{{ data.respiratory_rr|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Stridor</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_stridor" value="yes" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_stridor" value="no" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Chest Indrawing</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_chest_indrawing" value="yes" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="respiratory_chest_indrawing" value="no" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">SpO2 (%)</label>
+                        <input type="number" step="0.1" name="respiratory_spo2" class="input-field" placeholder="e.g. 97" value="{{ data.respiratory_spo2|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Shock Assessment -->
+            <div class="glass-card accent-orange p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Shock Assessment</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Status</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_status" value="no_shock" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No Shock</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_status" value="cold_hands" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Cold Hands/Feet</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_status" value="weak_pulse" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Weak Pulse</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_status" value="other" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Other</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label>
+                        <input type="number" step="0.1" name="shock_weight" class="input-field" placeholder="e.g. 10.0" value="{{ data.shock_weight|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Heart Rate (beats/min)</label>
+                        <input type="number" name="shock_heart_rate" class="input-field" placeholder="e.g. 120" value="{{ data.shock_heart_rate|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">CRT</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_crt" value="normal" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Normal (&ge; 2s)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="shock_crt" value="prolonged" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Prolonged (&gt; 2s)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. MUAC -->
+            <div class="glass-card accent-violet p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Mid-Upper Arm Circumference (MUAC)</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Measured</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="muac_measured" value="yes" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="radio" name="muac_measured" value="no" class="w-4 h-4 accent-[var(--blue-500)]">
+                                <span class="text-sm font-medium text-slate-700">No</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">MUAC (mm)</label>
+                        <input type="number" name="muac_value" class="input-field" placeholder="e.g. 130" value="{{ data.muac_value|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. Pain Assessment -->
+            <div class="glass-card accent-pink p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Pain Assessment</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">VAS Score (1-10)</label>
+                        <input type="number" min="1" max="10" name="pain_vas" class="input-field" placeholder="e.g. 5" value="{{ data.pain_vas|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                        <textarea name="pain_description" rows="2" class="input-field" placeholder="Describe the pain...">{{ data.pain_description|default:"" }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12. System Review (Other) -->
+            <div class="glass-card accent-indigo p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>System Review (Other)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="review_rash" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Rash</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="review_convulsions" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Convulsions</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="review_refusal_to_feed" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Refusal to Feed</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="review_impaired_consciousness" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Impaired Consciousness</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                        <input type="checkbox" name="review_anaemia" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                        <span class="text-sm font-medium text-slate-700">Anaemia</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 13. Investigation -->
+            <div class="glass-card accent-teal p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Investigation</span>
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">CBC</label>
+                        <input type="text" name="investigation_cbc" class="input-field" placeholder="CBC results..." value="{{ data.investigation_cbc|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Urinalysis</label>
+                        <input type="text" name="investigation_urinalysis" class="input-field" placeholder="Urinalysis results..." value="{{ data.investigation_urinalysis|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Malaria Parasite</label>
+                        <input type="text" name="investigation_malaria" class="input-field" placeholder="Malaria parasite results..." value="{{ data.investigation_malaria|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Other</label>
+                        <input type="text" name="investigation_other" class="input-field" placeholder="Other investigations..." value="{{ data.investigation_other|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 14. Vaccination Status -->
+            <div class="glass-card accent-lime p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Vaccination Status</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">BCG</label>
+                        <input type="text" name="vaccine_bcg" class="input-field" placeholder="Date or status" value="{{ data.vaccine_bcg|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">OPV 1-3</label>
+                        <input type="text" name="vaccine_opv" class="input-field" placeholder="Dates or status" value="{{ data.vaccine_opv|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Penta 1-3</label>
+                        <input type="text" name="vaccine_penta" class="input-field" placeholder="Dates or status" value="{{ data.vaccine_penta|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">PCV 1-3</label>
+                        <input type="text" name="vaccine_pcv" class="input-field" placeholder="Dates or status" value="{{ data.vaccine_pcv|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Rotavirus 1-3</label>
+                        <input type="text" name="vaccine_rotavirus" class="input-field" placeholder="Dates or status" value="{{ data.vaccine_rotavirus|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Measles</label>
+                        <input type="text" name="vaccine_measles" class="input-field" placeholder="Date or status" value="{{ data.vaccine_measles|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 15. Plan & Disposition -->
+            <div class="glass-card accent-rose p-6 space-y-4">
+                <h4 class="section-title">
+                    <span>Plan & Disposition</span>
+                </h4>
+
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                            <input type="checkbox" name="physician_notified" value="true" class="w-4 h-4 rounded accent-[var(--blue-500)]">
+                            <span class="text-sm font-bold text-slate-700">Physician Notified</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-slate-500">Time:</label>
+                            <input type="time" name="physician_notified_time" class="input-field w-36" value="{{ data.physician_notified_time|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Pending Orders</label>
+                    <textarea name="pending_orders" rows="3" class="input-field" placeholder="Lab results, imaging pending...">{{ data.pending_orders|default:"" }}</textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Disposition *</label>
+                    <div class="flex flex-wrap gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="admitted" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">Admitted</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="discharged" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">Discharged</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="ama" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">AMA</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="referred" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">Referred</span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="disposition" value="deceased" class="peer sr-only">
+                            <span class="block px-4 py-2 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold peer-checked:bg-[var(--blue-500)] peer-checked:text-white peer-checked:border-[var(--blue-500)] transition-all">Deceased</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Remarks</label>
+                    <textarea name="remarks" rows="3" class="input-field" placeholder="Additional notes, follow-up instructions...">{{ data.remarks|default:"" }}</textarea>
+                </div>
+            </div>
+
+            <!-- 16. Submit -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="/clinical/emergency/" class="btn-outline text-xs">Cancel</a>
+                <button type="submit" class="btn-primary text-xs flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Save Assessment
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterPediatricPatients(query) {
+        const cards = document.querySelectorAll('.ped-patient-card');
+        const q = query.toLowerCase();
+        cards.forEach(card => {
+            const name = (card.getAttribute('data-name') || '').toLowerCase();
+            const mrn = (card.getAttribute('data-mrn') || '').toLowerCase();
+            card.style.display = (name.includes(q) || mrn.includes(q)) ? '' : 'none';
+        });
+    }
+
+    async function searchForVisit(query) {
+        const resultsDiv = document.getElementById('ped-search-results');
+        if (!resultsDiv || query.length < 2) { if (resultsDiv) resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.searchPatients(query);
+            const patients = (res.results || res || []).slice(0, 8);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+
+            if (patients.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No patients found</div>';
+                return;
+            }
+
+            for (const p of patients) {
+                try {
+                    const visitsRes = await API.getVisits('?patient=' + p.id + '&status=checked_in&status=in_triage&status=in_progress&status=open');
+                    const visits = visitsRes.results || visitsRes || [];
+                    for (const v of visits) {
+                        if (v.visit_type === 'er' || v.visit_type === 'opd' || v.visit_type === 'ipd' || v.visit_type === 'pediatric') {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'w-full text-left p-3 bg-slate-50 hover:bg-primary/5 border border-slate-200 hover:border-primary/30 rounded-xl transition-all';
+                            btn.innerHTML =
+                                '<div class="flex items-center justify-between">' +
+                                '<span class="font-bold text-slate-900 text-sm">' + Utils.escapeHtml(p.first_name) + ' ' + Utils.escapeHtml(p.last_name) + '</span>' +
+                                '<span class="font-mono text-xs text-primary">' + Utils.escapeHtml(v.visit_number || '') + '</span>' +
+                                '</div>' +
+                                '<p class="text-xs text-slate-500 mt-0.5">MRN: ' + Utils.escapeHtml(p.mrn || '') + ' &bull; ' + Utils.escapeHtml(v.chief_complaint || 'No complaint') + '</p>';
+                            btn.onclick = function() {
+                                window.location.href = '/clinical/pediatric/?visit_id=' + v.id;
+                            };
+                            resultsDiv.appendChild(btn);
+                        }
+                    }
+                } catch (e) { /* skip patient */ }
+            }
+
+            if (resultsDiv.children.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No active visits found for matching patients</div>';
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+</script>
+{% endblock %}

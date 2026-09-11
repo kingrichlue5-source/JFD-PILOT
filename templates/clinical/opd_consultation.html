@@ -1,0 +1,696 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}OPD Consultation Suite - JFD Hospital HMS{% endblock %}
+{% block page_title %}Outpatient Doctor Workspace (OPD){% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div id="patient-header" class="glass-card p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-xl shadow-lg" id="patient-initials">?</div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-xl leading-none" id="patient-name">No Visit Selected</h3>
+                    <span class="badge badge-success text-[10px]" id="visit-badge">-</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1" id="patient-info">Go to OPD page to select a visit</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="text-right hidden sm:block mr-2">
+                <span class="text-[11px] text-slate-400 block font-medium">Attending Physician</span>
+                <span class="text-xs font-bold text-white">{{ user.get_full_name|default:"Doctor" }}</span>
+            </div>
+            <button onclick="openEscalateERModal()" class="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-all" id="btn-escalate" style="{% if visit_status == 'completed' %}display:none;{% endif %}" title="Escalate to ER">
+                <svg class="w-3.5 h-3.5 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Escalate to ER
+            </button>
+            <a href="/clinical/nurse-notes/?visit_id=" id="btn-nurse-notes" class="px-4 py-2 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-all no-underline" style="{% if visit_status == 'completed' %}display:none;{% endif %}" title="Nurse Notes (SOAP)">
+                <svg class="w-3.5 h-3.5 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                Nurse Notes
+            </a>
+            <button onclick="openAdmitIPDModal()" class="px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all" id="btn-admit-ipd" style="{% if visit_status == 'completed' %}display:none;{% endif %}" title="Admit to IPD">
+                <svg class="w-3.5 h-3.5 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                Admit to IPD
+            </button>
+            <button onclick="openDischargeModal()" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-md" id="btn-discharge" style="{% if visit_status == 'completed' %}display:none;{% endif %}">
+                Discharge
+            </button>
+            <button onclick="finalizeConsultation()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md" id="btn-finalize">
+                Finalize
+            </button>
+        </div>
+    </div>
+
+    {% if not visit_id %}
+    <div class="glass-card p-8 text-center space-y-4">
+        <div class="text-slate-400">
+            <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <h3 class="font-bold text-slate-700 text-lg">Select a Visit to Begin Consultation</h3>
+            <p class="text-xs text-slate-400 mt-1">Enter a Visit ID from the URL or use the button below</p>
+        </div>
+        <button onclick="openVisitSelector()" class="btn-primary text-xs">Find Active Visits</button>
+    </div>
+    {% endif %}
+
+    <div id="consultation-area" class="{% if not visit_id %}hidden{% endif %} grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <div class="lg:col-span-4 space-y-5">
+            <div class="glass-card accent-blue p-5 space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center justify-between">
+                    <span>Recorded Vitals</span>
+                    <button onclick="openVitalsForm()" class="text-[11px] text-primary font-bold hover:underline">+ Record</button>
+                </h4>
+                <div id="vitals-display" class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                    <div class="list-card p-3"><span class="text-slate-400 block">BP</span><span class="font-bold text-slate-800 text-sm" id="v-bp">-</span></div>
+                    <div class="list-card p-3"><span class="text-slate-400 block">Heart Rate</span><span class="font-bold text-slate-800 text-sm" id="v-hr">-</span></div>
+                    <div class="list-card p-3"><span class="text-slate-400 block">Temp</span><span class="font-bold text-slate-800 text-sm" id="v-temp">-</span></div>
+                    <div class="list-card p-3"><span class="text-slate-400 block">SpO2</span><span class="font-bold text-emerald-600 text-sm" id="v-spo2">-</span></div>
+                </div>
+            </div>
+
+            <div class="glass-card accent-rose p-5 space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100">Allergies & Risk Alerts</h4>
+                <div id="allergies-display">
+                    <div class="text-xs text-slate-400 py-2">No allergies recorded</div>
+                </div>
+            </div>
+
+            <div class="glass-card accent-amber p-5 space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100">Visit History</h4>
+                <div id="visit-history" class="text-xs text-slate-400 py-2">-</div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-8 glass-card accent-blue p-6 space-y-6">
+
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-base pb-2 border-b border-slate-100">1. Clinical SOAP Notes</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Subjective (History)</label>
+                        <textarea rows="3" class="input-field" id="soap-subjective" placeholder="Patient reports..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Objective (Examination)</label>
+                        <textarea rows="3" class="input-field" id="soap-objective" placeholder="Vitals, physical findings..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Assessment</label>
+                        <textarea rows="2" class="input-field" id="soap-assessment" placeholder="Clinical impression..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Plan</label>
+                        <textarea rows="2" class="input-field" id="soap-plan" placeholder="Treatment plan..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-base pb-2 border-b border-slate-100">2. ICD-10 Diagnosis Coding</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Primary Diagnosis (ICD-10)</label>
+                        <input type="text" id="icd-search" class="input-field" placeholder="Search ICD code (e.g. I10, M54.5)..." oninput="lookupICD(this.value)">
+                        <div id="icd-results" class="mt-1 space-y-1 hidden max-h-[120px] overflow-y-auto bg-white border rounded-xl z-10 relative"></div>
+                        <input type="hidden" id="primary-icd-code">
+                        <div class="mt-1 text-xs text-slate-500" id="primary-icd-label">No code selected</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Secondary Diagnosis</label>
+                        <input type="text" id="secondary-icd" class="input-field" placeholder="Optional secondary code...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-base pb-2 border-b border-slate-100">3. Diagnostic Investigation Orders</h4>
+                <div id="existing-orders" class="space-y-1 hidden">
+                    <p class="text-xs font-bold text-slate-500 mb-1">Existing Orders:</p>
+                    <div id="existing-orders-list" class="space-y-1"></div>
+                </div>
+                <div id="order-items" class="space-y-2"></div>
+                <button onclick="addOrderItem()" class="btn-outline text-xs font-bold">+ Add Order Item</button>
+            </div>
+
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-base pb-2 border-b border-slate-100">4. E-Prescriptions</h4>
+                <div id="rx-items" class="space-y-3"></div>
+                <button onclick="addRxItem()" class="btn-outline text-xs font-bold">+ Add Prescription</button>
+            </div>
+
+            <div class="space-y-3" id="billing-section">
+                <h4 class="font-bold text-slate-900 text-base pb-2 border-b border-slate-100">5. Billing Summary</h4>
+                <div id="billing-summary" class="text-xs text-slate-500">Loading billing data...</div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <form method="post" action="{% url 'opd-consultation-page' %}" id="encounter-form" style="display:contents">
+                    {% csrf_token %}
+                    <input type="hidden" name="visit_id" id="form-visit-id">
+                    <input type="hidden" name="encounter_id" id="form-encounter-id">
+                    <input type="hidden" name="subjective" id="form-subjective">
+                    <input type="hidden" name="objective" id="form-objective">
+                    <input type="hidden" name="assessment" id="form-assessment">
+                    <input type="hidden" name="plan" id="form-plan">
+                    <input type="hidden" name="icd_code" id="form-icd-code">
+                    <input type="hidden" name="orders_json" id="form-orders-json">
+                    <input type="hidden" name="prescriptions_json" id="form-rx-json">
+                </form>
+                <button onclick="saveEncounterServer()" class="btn-primary text-xs">
+                    Save Encounter & Issue Orders
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const VISIT_ID = '{{ visit_id }}';
+    const ENCOUNTER_ID = '{{ encounter_id }}';
+    let currentEncounterId = ENCOUNTER_ID;
+    let currentVisitId = VISIT_ID;
+    let currentPatientId = null;
+
+    async function initOPD() {
+        if (!currentVisitId) return;
+        try {
+            const visit = await API.getVisit(currentVisitId);
+            currentPatientId = visit.patient;
+            const patient = visit.patient_detail || {};
+
+            const initials = ((patient.first_name||'')[0] || '') + ((patient.last_name||'')[0] || '');
+            document.getElementById('patient-initials').textContent = initials || '?';
+            document.getElementById('patient-name').textContent = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'Unknown';
+            document.getElementById('patient-info').textContent = `MRN: ${patient.mrn || '-'} - ${patient.gender || '-'}, ${patient.age || '?'} yrs`;
+            document.getElementById('visit-badge').textContent = visit.status || 'Active';
+            document.getElementById('visit-badge').className = visit.status === 'completed' ? 'badge badge-success text-[10px]' : 'badge badge-info text-[10px]';
+            document.getElementById('consultation-area').classList.remove('hidden');
+
+            document.getElementById('btn-nurse-notes').href = '/clinical/nurse-notes/?visit_id=' + currentVisitId;
+
+            loadVitals(currentVisitId);
+            loadAllergies(visit.patient);
+            loadExistingEncounter();
+            loadBillingSummary(visit.patient);
+            loadExistingOrders(currentVisitId);
+
+            document.getElementById('visit-history').textContent = `Visit #${visit.visit_number || '-'} - ${visit.visit_type || 'OPD'} - ${Utils.formatDateTime(visit.created_at)}`;
+        } catch (err) {
+            console.error('Failed to load visit:', err);
+            showToast('Error loading visit data', 'error');
+        }
+    }
+
+    async function loadVitals(visitId) {
+        try {
+            // Try VitalSigns table first (recorded via "+ Record" button)
+            const res = await API.getVitals(visitId);
+            const vitals = (res.results || res || []);
+            if (vitals.length > 0) {
+                const v = vitals[0];
+                document.getElementById('v-bp').textContent = v.blood_pressure_systolic ? `${v.blood_pressure_systolic}/${v.blood_pressure_diastolic} mmHg` : '-';
+                document.getElementById('v-hr').textContent = v.heart_rate ? `${v.heart_rate} BPM` : '-';
+                document.getElementById('v-temp').textContent = v.temperature ? `${v.temperature} °C` : '-';
+                document.getElementById('v-spo2').textContent = v.oxygen_saturation ? `${v.oxygen_saturation}%` : '-';
+                return;
+            }
+            // Fallback: check TriageRecord (vitals entered during triage)
+            const triageRes = await API.get(`/clinical/visits/${visitId}/triage/`);
+            const triageRecords = triageRes.results || triageRes || [];
+            if (triageRecords.length > 0) {
+                const t = triageRecords[0];
+                document.getElementById('v-bp').textContent = t.blood_pressure_systolic ? `${t.blood_pressure_systolic}/${t.blood_pressure_diastolic} mmHg` : '-';
+                document.getElementById('v-hr').textContent = t.heart_rate ? `${t.heart_rate} BPM` : '-';
+                document.getElementById('v-temp').textContent = t.temperature ? `${t.temperature} °C` : '-';
+                document.getElementById('v-spo2').textContent = t.oxygen_saturation ? `${t.oxygen_saturation}%` : '-';
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadAllergies(patientId) {
+        try {
+            const res = await API.getPatientAllergies(patientId);
+            const allergies = (res.results || res || []);
+            const container = document.getElementById('allergies-display');
+            if (allergies.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-400 py-2">No known allergies (NKDA)</div>';
+                return;
+            }
+            container.innerHTML = '';
+            allergies.forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 p-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold mb-1';
+                div.innerHTML = `<span>⚠ ${Utils.escapeHtml(a.allergen || a.allergen_name || '-')}</span> - <span class="font-normal">${Utils.escapeHtml(a.reaction || '-')}</span>`;
+                container.appendChild(div);
+            });
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadBillingSummary(patientId) {
+        const el = document.getElementById('billing-summary');
+        try {
+            const res = await API.get(`/billing/invoices/?patient=${patientId}`);
+            const invoices = res.results || res || [];
+            if (invoices.length === 0) {
+                el.innerHTML = '<div class="text-slate-400 py-2">No invoices for this visit yet</div>';
+                return;
+            }
+            const inv = invoices[0];
+            const lines = inv.line_items || [];
+            const payments = inv.payments || [];
+            const totalDue = parseFloat(inv.total_amount || inv.amount_due || 0);
+            const totalPaid = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+            const balance = totalDue - totalPaid;
+
+            let html = `<div class="space-y-2">`;
+            html += `<div class="flex items-center justify-between text-xs"><span class="text-slate-500">Invoice:</span><span class="font-mono font-bold">${Utils.escapeHtml(inv.invoice_number || '-')}</span></div>`;
+            html += `<div class="flex items-center justify-between text-xs"><span class="text-slate-500">Status:</span><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${Utils.escapeHtml(inv.status || '-')}</span></div>`;
+            if (lines.length > 0) {
+                html += `<div class="mt-2 text-[11px] font-bold text-slate-600">Line Items:</div>`;
+                lines.forEach(l => {
+                    html += `<div class="flex items-center justify-between text-[11px] text-slate-500 pl-2"><span>${Utils.escapeHtml(l.description || l.service_item_name || '-')}</span><span class="font-mono">$${parseFloat(l.amount || 0).toFixed(2)}</span></div>`;
+                });
+            }
+            html += `<div class="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-100"><span>Total:</span><span class="font-mono">$${totalDue.toFixed(2)}</span></div>`;
+            html += `<div class="flex items-center justify-between text-xs font-bold"><span>Paid:</span><span class="font-mono text-emerald-600">$${totalPaid.toFixed(2)}</span></div>`;
+            html += `<div class="flex items-center justify-between text-xs font-bold"><span>Balance:</span><span class="font-mono ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}">$${balance.toFixed(2)}</span></div>`;
+            html += `</div>`;
+            el.innerHTML = html;
+        } catch (err) {
+            el.innerHTML = '<div class="text-slate-400 py-2">Billing data unavailable</div>';
+        }
+    }
+
+    async function loadExistingEncounter() {
+        if (currentEncounterId) {
+            try {
+                const enc = await API.getEncounter(currentEncounterId);
+                document.getElementById('soap-subjective').value = enc.subjective || '';
+                document.getElementById('soap-objective').value = enc.objective || '';
+                document.getElementById('soap-assessment').value = enc.assessment || '';
+                document.getElementById('soap-plan').value = enc.plan || '';
+            } catch (err) { console.error(err); }
+        } else if (currentVisitId) {
+            try {
+                const res = await API.getEncounters(currentVisitId);
+                const encs = (res.results || res || []);
+                if (encs.length > 0) {
+                    currentEncounterId = encs[0].id;
+                    document.getElementById('soap-subjective').value = encs[0].subjective || '';
+                    document.getElementById('soap-objective').value = encs[0].objective || '';
+                    document.getElementById('soap-assessment').value = encs[0].assessment || '';
+                    document.getElementById('soap-plan').value = encs[0].plan || '';
+                }
+            } catch (err) { console.error(err); }
+        }
+    }
+
+    async function loadExistingOrders(visitId) {
+        try {
+            const res = await API.getOrders(visitId);
+            const orders = (res.results || res || []);
+            if (orders.length === 0) return;
+            document.getElementById('existing-orders').classList.remove('hidden');
+            var statusColors = { pending: 'bg-yellow-100 text-yellow-700 border-yellow-200', in_progress: 'bg-blue-100 text-blue-700 border-blue-200', completed: 'bg-green-100 text-green-700 border-green-200', cancelled: 'bg-red-100 text-red-700 border-red-200' };
+            document.getElementById('existing-orders-list').innerHTML = orders.map(function(o) {
+                var color = statusColors[o.status] || 'bg-slate-100 text-slate-700 border-slate-200';
+                var icon = o.order_type === 'lab' ? '&#x1F9EB;' : (o.order_type === 'radiology' ? '&#x1F4F7;' : '&#x1F4CB;');
+                return '<div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs">' +
+                    '<div class="flex items-center gap-2">' +
+                    '<span>' + icon + '</span>' +
+                    '<span class="font-bold text-slate-800">' + esc(o.order_type.toUpperCase()) + '</span>' +
+                    '<span class="text-slate-500">' + esc(o.order_description || '') + '</span>' +
+                    '</div>' +
+                    '<span class="px-2 py-0.5 text-[10px] font-bold rounded-full border ' + color + '">' + esc(o.status) + '</span>' +
+                    '</div>';
+            }).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function lookupICD(query) {
+        const resultsDiv = document.getElementById('icd-results');
+        if (query.length < 1) { resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.getICDLookup(query);
+            const codes = (res.results || res || []).slice(0, 8);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            codes.forEach(c => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold text-[var(--blue-500)]">${Utils.escapeHtml(c.code)}</span> <span class="text-slate-600">${Utils.escapeHtml(c.description)}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('primary-icd-code').value = c.code;
+                    document.getElementById('icd-search').value = `${c.code} - ${c.description}`;
+                    document.getElementById('primary-icd-label').textContent = `${c.code}: ${c.description}`;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (codes.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No matching ICD codes</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    let orderCount = 0;
+    function addOrderItem() {
+        orderCount++;
+        const container = document.getElementById('order-items');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 items-center';
+        div.innerHTML = `
+            <select class="input-field flex-1" id="order-type-${orderCount}"><option value="lab">Lab Test</option><option value="radiology">Imaging</option></select>
+            <input type="text" class="input-field flex-2" id="order-desc-${orderCount}" placeholder="Description (e.g. CBC, Chest X-Ray)">
+            <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 text-xs">✕</button>`;
+        container.appendChild(div);
+    }
+
+    let rxCount = 0;
+    function addRxItem() {
+        rxCount++;
+        const container = document.getElementById('rx-items');
+        const div = document.createElement('div');
+        div.className = 'p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2';
+        div.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div class="sm:col-span-2"><label class="block font-bold text-slate-700 mb-1">Medication *</label>
+                    <input type="text" class="input-field" id="rx-med-${rxCount}" placeholder="Search medication..." oninput="searchMedication('rx-med-${rxCount}', this.value)">
+                    <div id="rx-med-results-${rxCount}" class="mt-1 space-y-1 hidden max-h-[100px] overflow-y-auto bg-white border rounded-lg z-10 relative"></div>
+                    <input type="hidden" id="rx-med-id-${rxCount}">
+                </div>
+                <div><label class="block font-bold text-slate-700 mb-1">Dosage & Freq *</label><input type="text" class="input-field" id="rx-dose-${rxCount}" placeholder="e.g. 500mg TDS"></div>
+                <div><label class="block font-bold text-slate-700 mb-1">Duration</label><input type="text" class="input-field" id="rx-dur-${rxCount}" placeholder="e.g. 7 days"></div>
+            </div>
+            <button onclick="this.closest('.p-4').remove()" class="text-red-500 hover:text-red-700 text-[10px] font-bold">Remove</button>`;
+        container.appendChild(div);
+    }
+
+    async function searchMedication(inputId, query) {
+        const resultsDiv = document.getElementById(inputId.replace('rx-med-', 'rx-med-results-'));
+        if (!resultsDiv || query.length < 2) { if (resultsDiv) resultsDiv.classList.add('hidden'); return; }
+        try {
+            const res = await API.getMedications();
+            const meds = (res.results || res || []).filter(m => (m.name || '').toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+            meds.forEach(m => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs';
+                btn.innerHTML = `<span class="font-bold">${Utils.escapeHtml(m.name)}</span> <span class="text-slate-400">${Utils.escapeHtml(m.strength || '')}</span>`;
+                btn.onclick = () => {
+                    document.getElementById(inputId).value = m.name;
+                    document.getElementById(inputId.replace('rx-med-', 'rx-med-id-')).value = m.id;
+                    resultsDiv.classList.add('hidden');
+                };
+                resultsDiv.appendChild(btn);
+            });
+            if (meds.length === 0) resultsDiv.innerHTML = '<div class="p-2 text-xs text-slate-400">No medications found</div>';
+        } catch (err) { console.error(err); }
+    }
+
+    async function saveEncounterServer() {
+        try {
+            if (!currentVisitId) { showToast('No visit selected', 'error'); return; }
+
+            document.getElementById('form-visit-id').value = currentVisitId;
+            document.getElementById('form-encounter-id').value = currentEncounterId || '';
+            document.getElementById('form-subjective').value = document.getElementById('soap-subjective').value;
+            document.getElementById('form-objective').value = document.getElementById('soap-objective').value;
+            document.getElementById('form-assessment').value = document.getElementById('soap-assessment').value;
+            document.getElementById('form-plan').value = document.getElementById('soap-plan').value;
+            document.getElementById('form-icd-code').value = document.getElementById('primary-icd-code').value;
+
+            const orderItems = [];
+            document.querySelectorAll('#order-items > div').forEach(row => {
+                const type = row.querySelector('select')?.value;
+                const desc = row.querySelector('input[type="text"]')?.value;
+                if (type && desc) orderItems.push({ type, description: desc });
+            });
+            document.getElementById('form-orders-json').value = JSON.stringify(orderItems);
+
+            const rxItems = [];
+            document.querySelectorAll('#rx-items > .p-4').forEach(row => {
+                const medId = row.querySelector('[id^="rx-med-id-"]')?.value;
+                const dose = row.querySelector('[id^="rx-dose-"]')?.value;
+                const dur = row.querySelector('[id^="rx-dur-"]')?.value;
+                if (medId && dose) rxItems.push({ medication: medId, dosage: dose, duration: dur || '7 days', quantity: 1 });
+            });
+            document.getElementById('form-rx-json').value = JSON.stringify(rxItems);
+
+            document.getElementById('encounter-form').submit();
+        } catch (err) {
+            showToast('Error preparing encounter: ' + err.message, 'error');
+        }
+    }
+
+    async function saveEncounter() {
+        return saveEncounterServer();
+    }
+
+    async function finalizeConsultation() {
+        try {
+            await saveEncounterServer();
+        } catch (err) {
+            showToast('Error finalizing: ' + err.message, 'error');
+        }
+    }
+
+    async function openVisitSelector() {
+        let visits = [];
+        try {
+            const res = await API.getVisits('?status=checked_in&status=in_triage&status=in_progress');
+            visits = res.results || res || [];
+        } catch (e) { console.error(e); }
+
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Search Visit *</label>
+                    <input type="text" id="sel-visit-search" class="input-field" placeholder="Type patient name, MRN, or visit number..." oninput="filterVisitSelector(this.value)">
+                </div>
+                <div id="sel-visit-results" class="space-y-2 max-h-[300px] overflow-y-auto">
+                    ${visits.map(v => `
+                        <button type="button" class="w-full text-left p-3 bg-slate-50 hover:bg-primary/5 border border-slate-200 hover:border-primary/30 rounded-xl transition-all visit-sel-btn" data-id="${v.id}" onclick="selectVisitForOPD('${v.id}')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-900 text-sm">${Utils.escapeHtml(v.patient_name || '')}</span>
+                                <span class="font-mono text-xs text-primary">${Utils.escapeHtml(v.visit_number || '')}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">MRN: ${Utils.escapeHtml(v.patient_mrn || '')} | ${v.visit_type ? v.visit_type.toUpperCase() : ''} | ${v.chief_complaint ? Utils.escapeHtml(v.chief_complaint.substring(0, 60)) : ''}</p>
+                        </button>
+                    `).join('')}
+                    ${visits.length === 0 ? '<p class="text-center text-slate-400 text-xs py-4">No active visits found</p>' : ''}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Or paste Visit UUID</label>
+                    <input type="text" id="sel-visit-id" class="input-field" placeholder="Visit UUID">
+                </div>
+            </div>`;
+        Modal.show('Open Visit for Consultation', bodyHTML, {
+            saveText: 'Open Visit',
+            onSave: () => {
+                const id = document.getElementById('sel-visit-id').value;
+                if (!id) throw new Error('Please select a visit or enter a visit ID');
+                window.location.href = `/opd/?visit_id=${id}`;
+            }
+        });
+    }
+
+    function filterVisitSelector(query) {
+        const q = query.toLowerCase();
+        document.querySelectorAll('.visit-sel-btn').forEach(btn => {
+            const text = btn.textContent.toLowerCase();
+            btn.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    function selectVisitForOPD(visitId) {
+        document.getElementById('sel-visit-id').value = visitId;
+        document.querySelectorAll('.visit-sel-btn').forEach(btn => {
+            btn.classList.toggle('bg-primary/10', btn.dataset.id === visitId);
+            btn.classList.toggle('border-primary', btn.dataset.id === visitId);
+        });
+    }
+
+    function openVitalsForm() {
+        if (!currentVisitId) { showToast('No visit selected', 'error'); return; }
+        const bodyHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Systolic BP</label><input type="number" id="v-sys" class="input-field" placeholder="mmHg"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Diastolic BP</label><input type="number" id="v-dia" class="input-field" placeholder="mmHg"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Heart Rate</label><input type="number" id="v-hr-input" class="input-field" placeholder="BPM"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Temperature</label><input type="number" step="0.1" id="v-temp-input" class="input-field" placeholder="°C"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">SpO2</label><input type="number" id="v-spo2-input" class="input-field" placeholder="%"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">Respiratory Rate</label><input type="number" id="v-rr" class="input-field" placeholder="breaths/min"></div>
+            </div>`;
+        Modal.show('Record Vitals', bodyHTML, {
+            saveText: 'Save Vitals',
+            onSave: async () => {
+                await API.createVitals(currentVisitId, {
+                    blood_pressure_systolic: document.getElementById('v-sys').value,
+                    blood_pressure_diastolic: document.getElementById('v-dia').value,
+                    heart_rate: document.getElementById('v-hr-input').value,
+                    temperature: document.getElementById('v-temp-input').value,
+                    oxygen_saturation: document.getElementById('v-spo2-input').value,
+                    respiratory_rate: document.getElementById('v-rr').value
+                });
+                showToast('Vitals recorded!', 'success');
+                loadVitals(currentVisitId);
+            }
+        });
+    }
+
+    /* ========== ESCALATE TO ER ========== */
+    function openEscalateERModal() {
+        if (!currentVisitId) { showToast('No visit selected', 'error'); return; }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 font-medium">
+                    <strong>Escalate to ER:</strong> Transfer this patient to the Emergency Department. The visit type will change from OPD to ER and the patient will appear in the ER dashboard.
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Reason for Escalation *</label>
+                    <textarea id="escalate-reason" rows="3" class="input-field" placeholder="Patient condition deteriorating — describe symptoms and urgency..."></textarea>
+                </div>
+            </div>`;
+        Modal.show('Escalate to ER', bodyHTML, {
+            saveText: 'Confirm Escalation',
+            onSave: async () => {
+                const reason = document.getElementById('escalate-reason').value.trim();
+                if (!reason) { showToast('Reason is required', 'error'); return; }
+                await API.post(`/clinical/visits/${currentVisitId}/escalate-to-er/`, { reason });
+                showToast('Patient escalated to ER! ER team notified.', 'success');
+                setTimeout(() => location.reload(), 1500);
+            }
+        });
+    }
+
+    /* ========== ADMIT TO IPD ========== */
+    function openAdmitIPDModal() {
+        if (!currentVisitId) { showToast('No visit selected', 'error'); return; }
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 font-medium">
+                    <strong>Admit to IPD:</strong> Admit this patient to the In-Patient Department. An admission record will be created and you can assign a bed from the IPD dashboard.
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Admitting Diagnosis *</label>
+                    <textarea id="admit-diagnosis" rows="2" class="input-field" placeholder="Primary diagnosis requiring admission..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Admission Type</label>
+                    <select id="admit-type" class="input-field">
+                        <option value="emergency">Emergency</option>
+                        <option value="elective">Elective</option>
+                        <option value="observation">Observation</option>
+                    </select>
+                </div>
+            </div>`;
+        Modal.show('Admit to IPD', bodyHTML, {
+            saveText: 'Confirm Admission',
+            onSave: async () => {
+                const diagnosis = document.getElementById('admit-diagnosis').value.trim();
+                if (!diagnosis) { showToast('Diagnosis is required', 'error'); return; }
+                const visit = await API.getVisit(currentVisitId);
+                await API.post('/clinical/admissions/', {
+                    patient: visit.patient,
+                    visit: currentVisitId,
+                    admitting_diagnosis: diagnosis,
+                    admission_type: document.getElementById('admit-type').value,
+                    status: 'active'
+                });
+                showToast('Patient admitted to IPD! Assign a bed from the IPD dashboard.', 'success');
+                setTimeout(() => location.reload(), 1500);
+            }
+        });
+    }
+
+    function openDischargeModal() {
+        if (!currentVisitId) { showToast('No visit selected', 'error'); return; }
+        const defaultFollowUp = new Date();
+        defaultFollowUp.setDate(defaultFollowUp.getDate() + 7);
+        const defaultDate = defaultFollowUp.toISOString().slice(0, 10);
+        const bodyHTML = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Discharge Type *</label>
+                    <select id="discharge-type" class="input-field">
+                        <option value="routine">Routine</option>
+                        <option value="against_medical_advice">Against Medical Advice</option>
+                        <option value="referred">Referred</option>
+                        <option value="transferred">Transferred</option>
+                        <option value="deceased">Deceased</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Discharge Notes</label>
+                    <textarea rows="3" id="discharge-notes" class="input-field" placeholder="e.g. Improved. Follow up in 3 days."></textarea>
+                </div>
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="checkbox" id="schedule-followup" class="rounded border-slate-300" onchange="document.getElementById('followup-fields').style.display = this.checked ? '' : 'none'">
+                        <span class="text-xs font-bold text-slate-700">Schedule Follow-up Appointment</span>
+                    </label>
+                    <div id="followup-fields" style="display:none;" class="space-y-3 pl-6">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Follow-up Date *</label>
+                            <input type="date" id="followup-date" class="input-field" value="${defaultDate}">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Reason</label>
+                            <input type="text" id="followup-reason" class="input-field" placeholder="e.g. Post-treatment review">
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        Modal.show('Discharge Patient', bodyHTML, {
+            saveText: 'Confirm Discharge',
+            onSave: async () => {
+                await API.updateVisitStatus(currentVisitId, 'completed');
+                if (document.getElementById('schedule-followup').checked) {
+                    if (!currentPatientId) {
+                        showToast('Patient data not loaded yet. Discharge saved but follow-up not scheduled.', 'warning');
+                    } else {
+                        const followupDate = document.getElementById('followup-date').value;
+                        if (followupDate) {
+                            try {
+                                await API.post('/clinical/appointments/', {
+                                    patient: currentPatientId,
+                                    appointment_date: followupDate,
+                                    appointment_time: '09:00',
+                                    duration_minutes: 30,
+                                    appointment_type: 'follow_up',
+                                    reason: document.getElementById('followup-reason').value.trim() || 'Follow-up visit',
+                                    linked_visit: currentVisitId,
+                                    status: 'scheduled',
+                                });
+                                showToast('Follow-up appointment scheduled!', 'success');
+                            } catch (e) {
+                                showToast('Discharged but follow-up scheduling failed: ' + (e.message || e), 'warning');
+                            }
+                        }
+                    }
+                }
+                showToast('Patient discharged successfully!', 'success');
+                document.getElementById('visit-badge').textContent = 'Completed';
+                document.getElementById('visit-badge').className = 'badge badge-success text-[10px]';
+                document.getElementById('btn-discharge').style.display = 'none';
+            }
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#icd-search') && !e.target.closest('#icd-results')) {
+            document.getElementById('icd-results')?.classList.add('hidden');
+        }
+    });
+
+    initOPD();
+</script>
+{% endblock %}

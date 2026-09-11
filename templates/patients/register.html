@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Patient Registration - JFD Hospital HMS{% endblock %}
+{% block page_title %}Patient Registration{% endblock %}
+
+{% block content %}
+<div class="page-enter space-y-6">
+
+    <form method="POST" action="{% url 'patient-register-page' %}" class="space-y-6" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if existing_visit %}
+        <input type="hidden" name="visit_id" value="{{ existing_visit.id }}">
+        <div class="glass-card p-4 border-l-4 border-l-amber-500 bg-amber-50">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div>
+                    <p class="text-sm font-bold text-amber-800">Completing Registration for Triage Patient</p>
+                    <p class="text-xs text-amber-700 mt-0.5">Visit: {{ existing_visit.visit_number }} | Complaint: {{ existing_visit.chief_complaint|default:"-" }} | Acuity: Level {{ triage_record.acuity_level|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Personal Information</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="sm:col-span-1 flex flex-col items-center justify-center">
+                    <div id="photo-preview" class="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden mb-2">
+                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    {{ form.photo }}
+                    <p class="text-[11px] text-slate-400 text-center mt-1">Photo (optional)<br>Front camera selfie</p>
+                    {% if form.photo.errors %}<p class="text-red-500 text-xs mt-1">{{ form.photo.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="sm:col-span-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">First Name *</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Middle Name</label>
+                            {{ form.middle_name }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Last Name *</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Date of Birth</label>
+                            {{ form.date_of_birth }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Gender *</label>
+                            {{ form.gender }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Blood Type</label>
+                            {{ form.blood_type }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Marital Status</label>
+                            {{ form.marital_status }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Contact Information</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Phone</label>
+                    {{ form.phone }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                    {{ form.email }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">City</label>
+                    {{ form.city }}
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Address</label>
+                    {{ form.address_line1 }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Country</label>
+                    {{ form.country }}
+                    <datalist id="country-list">
+                        <option value="Liberia">
+                        <option value="Sierra Leone">
+                        <option value="Guinea">
+                        <option value="Ivory Coast">
+                        <option value="Ghana">
+                        <option value="Nigeria">
+                        <option value="Senegal">
+                        <option value="Gambia">
+                        <option value="Mali">
+                        <option value="Burkina Faso">
+                        <option value="Guinea-Bissau">
+                        <option value="Cape Verde">
+                        <option value="Togo">
+                        <option value="Benin">
+                        <option value="Niger">
+                        <option value="Chad">
+                        <option value="Cameroon">
+                        <option value="Central African Republic">
+                        <option value="DR Congo">
+                        <option value="Congo">
+                        <option value="Gabon">
+                        <option value="Equatorial Guinea">
+                        <option value="Sao Tome and Principe">
+                        <option value="United States">
+                        <option value="United Kingdom">
+                        <option value="Canada">
+                        <option value="China">
+                        <option value="India">
+                        <option value="France">
+                        <option value="Germany">
+                        <option value="South Africa">
+                        <option value="Kenya">
+                        <option value="Ethiopia">
+                        <option value="Tanzania">
+                        <option value="Uganda">
+                        <option value="Rwanda">
+                        <option value="Burundi">
+                        <option value="Mauritania">
+                        <option value="Morocco">
+                        <option value="Tunisia">
+                        <option value="Algeria">
+                        <option value="Egypt">
+                        <option value="Brazil">
+                        <option value="Mexico">
+                        <option value="Japan">
+                        <option value="South Korea">
+                        <option value="Australia">
+                    </datalist>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Emergency Contact</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Contact Name</label>
+                    {{ form.emergency_contact_name }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Contact Phone</label>
+                    {{ form.emergency_contact_phone }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Relationship</label>
+                    {{ form.emergency_contact_relationship }}
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Insurance & Billing</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Payer Category</label>
+                    {{ form.payer_category }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Insurance Provider</label>
+                    {{ form.insurance_provider }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Policy Number</label>
+                    {{ form.insurance_policy_number }}
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Visit Details</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Visit Type *</label>
+                    {{ form.visit_type }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Chief Complaint</label>
+                    {{ form.chief_complaint }}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+            <a href="{% if existing_visit %}{% url 'triage-pending-page' %}{% else %}{% url 'index' %}{% endif %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl border border-slate-200 hover:bg-slate-200 transition-all">Cancel</a>
+            <button type="submit" class="btn-primary text-xs">{% if existing_visit %}Complete Registration & Start Consultation{% else %}Register Patient & Send to Queue{% endif %}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('photo-input').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('photo-preview').innerHTML = '<img src="' + ev.target.result + '" class="w-full h-full object-cover">';
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    }
+});
+</script>
+{% endblock %}

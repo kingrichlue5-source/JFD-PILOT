@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% load export_tags %}
+{% block title %}User Management - JFD Hospital HMS{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Total Users</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ total_users }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Active</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ users|length }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Roles</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ roles|length }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Departments</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ departments|length }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-5 accent-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base section-header-gradient px-3 py-1 rounded-lg">All Users</h3>
+            {% export_buttons "users" %}
+            <div class="flex items-center gap-3">
+                <input type="text" id="user-search" placeholder="Search by name, email, username..." class="input-field text-xs w-64" oninput="filterUsers()">
+                <select id="user-dept-filter" class="input-field text-xs w-40" onchange="filterUsers()">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.name }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="openCreateUserModal()" class="btn-primary text-xs">+ Create User</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-slate-100">
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">User</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Email</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Department</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Roles</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Status</th>
+                        <th class="text-left py-3 px-4 font-bold text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    {% for u in users %}
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{{ u.first_name|first|default:"?" }}{{ u.last_name|first|default:"?" }}</div>
+                                <div>
+                                    <p class="font-bold text-slate-900">{{ u.first_name }} {{ u.last_name }}</p>
+                                    <p class="text-[11px] text-slate-500">@{{ u.username }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">{{ u.email }}</td>
+                        <td class="py-3 px-4 text-slate-600">{{ u.department|default:"-" }}</td>
+                        <td class="py-3 px-4">
+                            {% for r in user_roles_map|default_if_none:"" %}
+                            {% endfor %}
+                            {% with user_roles=user_roles_map %}
+                            {% for key, vals in user_roles.items %}
+                                {% if key == u.id|slugify %}
+                                    {% for r in vals %}
+                                    <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{{ r.name }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            {% endwith %}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if u.status == 'active' %}
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Active</span>
+                            {% elif u.status == 'locked' %}
+                            <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">Locked</span>
+                            {% elif u.status == 'inactive' %}
+                            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Inactive</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">{{ u.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2">
+                                <button onclick="openEditUserModal('{{ u.id }}', '{{ u.username }}', '{{ u.email }}', '{{ u.first_name }}', '{{ u.last_name }}', '{{ u.phone|default:"" }}', '{{ u.employee_id|default:"" }}', '{{ u.job_title|default:"" }}', '{{ u.status }}', '{{ u.department.id|default:"" }}')" class="px-3 py-1 text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-all">Edit</button>
+                                {% if u.status == 'locked' %}
+                                <form method="post" style="display:contents">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="unlock">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" class="px-3 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all">Unlock</button>
+                                </form>
+                                {% endif %}
+                                {% if u.status == 'active' %}
+                                <form method="post" style="display:contents">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="deactivate">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" class="px-3 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all">Deactivate</button>
+                                </form>
+                                {% else %}
+                                <form method="post" style="display:contents">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="activate">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" class="px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all">Activate</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="py-8 text-center text-slate-400">No users found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="user-modal" class="hidden modal-overlay" onclick="if(event.target===this)closeUserModal()">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="modal-title">Create User</h3>
+            <button onclick="closeUserModal()" class="modal-close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form method="post" class="modal-body space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create" id="form-action">
+            <input type="hidden" name="user_id" id="form-user-id" value="">
+            <div class="grid grid-cols-2 gap-4">
+                <div><label>First Name *</label><input type="text" name="first_name" id="form-first-name" class="input-field" required></div>
+                <div><label>Last Name *</label><input type="text" name="last_name" id="form-last-name" class="input-field" required></div>
+            </div>
+            <div><label>Username *</label><input type="text" name="username" id="form-username" class="input-field" required></div>
+            <div><label>Email *</label><input type="email" name="email" id="form-email" class="input-field" required></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label>Phone</label><input type="text" name="phone" id="form-phone" class="input-field"></div>
+                <div><label>Employee ID</label><input type="text" name="employee_id" id="form-employee-id" class="input-field"></div>
+            </div>
+            <div><label>Job Title</label><input type="text" name="job_title" id="form-job-title" class="input-field"></div>
+            <div><label>Department</label><select name="department" id="form-department" class="input-field"><option value="">None</option>{% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}</select></div>
+            <div><label>Password</label><input type="password" name="password" id="form-password" class="input-field" placeholder="Leave blank to keep current"></div>
+            <div><label>Status</label><select name="status" id="form-status" class="input-field"><option value="active">Active</option><option value="inactive">Inactive</option><option value="locked">Locked</option><option value="pending">Pending</option></select></div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" onclick="closeUserModal()" class="btn-outline">Cancel</button>
+            <button type="button" onclick="document.querySelector('#user-modal form').submit()" class="btn-primary">Save User</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function debounce(fn, ms) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+function filterUsers() {
+    const query = document.getElementById('user-search').value.toLowerCase();
+    const deptFilter = document.getElementById('user-dept-filter').value.toLowerCase();
+    const rows = document.querySelectorAll('#users-table-body tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const matchesSearch = !query || text.includes(query);
+        const matchesDept = !deptFilter || text.includes(deptFilter);
+        const show = matchesSearch && matchesDept;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+}
+
+function openCreateUserModal() {
+    document.getElementById('modal-title').textContent = 'Create User';
+    document.getElementById('form-action').value = 'create';
+    document.getElementById('form-user-id').value = '';
+    document.getElementById('form-username').value = '';
+    document.getElementById('form-email').value = '';
+    document.getElementById('form-first-name').value = '';
+    document.getElementById('form-last-name').value = '';
+    document.getElementById('form-phone').value = '';
+    document.getElementById('form-employee-id').value = '';
+    document.getElementById('form-job-title').value = '';
+    document.getElementById('form-department').value = '';
+    document.getElementById('form-password').value = '';
+    document.getElementById('form-status').value = 'active';
+    document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function openEditUserModal(id, username, email, firstName, lastName, phone, employeeId, jobTitle, status, deptId) {
+    document.getElementById('modal-title').textContent = 'Edit User';
+    document.getElementById('form-action').value = 'edit';
+    document.getElementById('form-user-id').value = id;
+    document.getElementById('form-username').value = username;
+    document.getElementById('form-email').value = email;
+    document.getElementById('form-first-name').value = firstName;
+    document.getElementById('form-last-name').value = lastName;
+    document.getElementById('form-phone').value = phone;
+    document.getElementById('form-employee-id').value = employeeId;
+    document.getElementById('form-job-title').value = jobTitle;
+    document.getElementById('form-department').value = deptId;
+    document.getElementById('form-password').value = '';
+    document.getElementById('form-status').value = status;
+    document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').classList.add('hidden');
+}
+</script>
+{% endblock %}

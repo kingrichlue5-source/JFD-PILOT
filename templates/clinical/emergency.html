@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% load static %}
+{% load export_tags %}
+
+{% block title %}Emergency Department - JFD Hospital HMS{% endblock %}
+{% block page_title %}Emergency Room (ER) Command Center{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Active ER Cases</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ active_count }}</h3>
+                <span class="badge badge-danger text-[10px]">Critical</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Awaiting Disposition</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ awaiting_disposition }}</h3>
+                <span class="badge badge-warning text-[10px]">Pending</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Discharged Today</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ discharged_today }}</h3>
+                <span class="badge badge-success text-[10px]">Done</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Admitted from ER</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ admitted_from_er }}</h3>
+                <span class="badge badge-info text-[10px]">IPD</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card accent-red p-6 space-y-4">
+        <div class="section-header-gradient rounded-xl px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h3 class="font-bold text-white text-base">Active ER Cases</h3>
+                {% export_buttons "emergency" %}
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openInstantERBypass()" class="px-4 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all shadow-lg flex items-center gap-2 animate-pulse" title="Critical Emergency: Skip registration, start treatment immediately">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    INSTANT ER BYPASS
+                </button>
+                <p class="text-[11px] text-white/70">Register ER patients via Patient Registration (Visit Type: ER)</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th class="pb-3 px-3">Acuity</th>
+                        <th class="pb-3 px-3">Patient Name / MRN</th>
+                        <th class="pb-3 px-3">Chief Complaint</th>
+                        <th class="pb-3 px-3">Time in ER</th>
+                        <th class="pb-3 px-3">Status</th>
+                        <th class="pb-3 px-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                    {% for visit in active_cases %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3.5 px-3">
+                            {% if visit.triage_priority == 'stat' %}
+                            <span class="badge badge-danger">Level 1 - STAT</span>
+                            {% elif visit.triage_priority == 'urgent' %}
+                            <span class="badge badge-warning">Level 2 - Urgent</span>
+                            {% else %}
+                            <span class="badge badge-info">Level 3 - Routine</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-3">
+                            <p class="font-bold text-slate-900">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</p>
+                            {% if visit.patient.is_temporary %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full border border-red-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                TEMP — {{ visit.patient.temporary_token }}
+                            </span>
+                            {% else %}
+                            <p class="text-xs text-slate-400 font-mono">{{ visit.patient.mrn }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-3 text-xs">{{ visit.chief_complaint|default:"-" }}</td>
+                        <td class="py-3.5 px-3 text-xs font-bold text-red-600">
+                            {% if visit.check_in_time %}
+                                {{ visit.check_in_time|timesince }} ago
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-3">
+                            <span class="badge badge-{{ visit.status|default:'info' }}">{{ visit.get_status_display }}</span>
+                        </td>
+                        <td class="py-3.5 px-3 text-right space-x-2">
+                            {% if visit.patient.is_temporary %}
+                            <button onclick="openReconcileModal('{{ visit.patient.temporary_token }}', '{{ visit.id }}')" class="px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all border border-amber-200" title="Complete registration for this emergency patient">
+                                <svg class="w-3.5 h-3.5 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                Complete Registration
+                            </button>
+                            {% endif %}
+                            {% if visit.id in evaluated_visit_ids %}
+                            <span class="px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-xl inline-block cursor-default" title="Evaluation already completed">Eval Done</span>
+                            {% else %}
+                            <a href="/clinical/er-evaluation/?visit_id={{ visit.id }}" class="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all inline-block">Fill Evaluation</a>
+                            {% endif %}
+                            {% if visit.id in evaluated_visit_ids %}
+                            <button onclick="recordERIntervention('{{ visit.id }}')" class="px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all">Log Intervention</button>
+                            {% else %}
+                            <button disabled title="Complete evaluation first" class="px-3 py-1.5 text-xs font-bold text-slate-300 bg-slate-100 cursor-not-allowed rounded-xl">Log Intervention</button>
+                            {% endif %}
+                            {% if visit.id in evaluated_visit_ids and visit.id in intervened_visit_ids %}
+                            <button onclick="dispositionPatient('{{ visit.id }}')" class="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all">Process Disposition</button>
+                            {% else %}
+                            <button disabled title="Complete evaluation and log at least one intervention first" class="px-3 py-1.5 text-xs font-bold text-slate-300 bg-slate-100 cursor-not-allowed rounded-xl">Process Disposition</button>
+                            {% endif %}
+                            <a href="/clinical/nurse-notes/?visit_id={{ visit.id }}" class="px-3 py-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all inline-block no-underline" title="Nurse Notes (SOAP)">Nurse Notes</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="py-8 text-center text-slate-400 text-sm">No active ER cases</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Diagnostic Orders -->
+    <div class="glass-card">
+        <div class="section-header-gradient rounded-t-2xl p-4 border-b border-white/10 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-white">Diagnostic Orders</h2>
+                <p class="text-xs text-slate-300 mt-0.5">Lab tests &amp; imaging for ER patients</p>
+            </div>
+            <button onclick="openEROrderModal()" class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">+ Order Lab/Imaging</button>
+        </div>
+        <div class="p-4">
+            <div id="er-orders-list" class="space-y-2">
+                <p class="text-sm text-slate-400 text-center py-4">Select a patient to view orders</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var selectedERVisitId = null;
+
+    function recordERIntervention(visitId) {
+        selectedERVisitId = visitId;
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Intervention Description *</label>' +
+            '<textarea id="intervention-note" rows="3" class="input-field" placeholder="Describe intervention, procedures, medications..."></textarea>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Vitals (optional)</label>' +
+            '<div class="grid grid-cols-2 gap-3">' +
+            '<input type="text" id="int-vitals-bp" class="input-field" placeholder="BP (e.g. 120/80)">' +
+            '<input type="text" id="int-vitals-hr" class="input-field" placeholder="Heart Rate">' +
+            '<input type="text" id="int-vitals-temp" class="input-field" placeholder="Temp (C)">' +
+            '<input type="text" id="int-vitals-spo2" class="input-field" placeholder="SpO2 (%)">' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+
+        Modal.show('Record ER Intervention', bodyHTML, {
+            saveText: 'Save Intervention',
+            onSave: async function() {
+                var note = document.getElementById('intervention-note').value.trim();
+                if (!note) throw new Error('Please enter intervention description');
+
+                try {
+                    var encounters = await API.getEncounters(visitId);
+                    var encounterList = encounters.results || encounters || [];
+                    var encounterId = encounterList.length > 0 ? encounterList[0].id : null;
+
+                    if (!encounterId) {
+                        var enc = await API.createEncounter(visitId, { encounter_type: 'er', subjective: note });
+                        encounterId = enc.id;
+                    }
+
+                    await API.createProgressNote(encounterId, { note_type: 'progress', note_text: note });
+
+                    var bp = document.getElementById('int-vitals-bp').value.trim();
+                    var hr = document.getElementById('int-vitals-hr').value.trim();
+                    var temp = document.getElementById('int-vitals-temp').value.trim();
+                    var spo2 = document.getElementById('int-vitals-spo2').value.trim();
+
+                    if (bp || hr || temp || spo2) {
+                        var vitalsData = {};
+                        if (bp) { var parts = bp.split('/'); vitalsData.blood_pressure_systolic = parts[0]; vitalsData.blood_pressure_diastolic = parts[1]; }
+                        if (hr) vitalsData.heart_rate = hr;
+                        if (temp) vitalsData.temperature = temp;
+                        if (spo2) vitalsData.oxygen_saturation = spo2;
+                        await API.createVitals(visitId, vitalsData);
+                    }
+
+                    showToast('Intervention recorded successfully!', 'success');
+                } catch (err) {
+                    throw new Error('Failed to save: ' + err.message);
+                }
+            }
+        });
+    }
+
+    /* ========== INSTANT ER BYPASS ========== */
+    function openInstantERBypass() {
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div class="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 font-medium">' +
+            '<strong>CRITICAL EMERGENCY:</strong> This creates a temporary patient record (no registration needed). Begin treatment immediately. Complete formal registration later when patient is stabilized.' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Patient Name (if known)</label>' +
+            '<input type="text" id="bypass-name" class="input-field" placeholder="UNKNOWN PATIENT if not identified">' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Chief Complaint *</label>' +
+            '<textarea id="bypass-complaint" rows="2" class="input-field" placeholder="Reason for emergency..."></textarea>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Emergency Reason *</label>' +
+            '<input type="text" id="bypass-reason" class="input-field" placeholder="e.g. Motor vehicle accident, Cardiac arrest...">' +
+            '</div>' +
+            '</div>';
+
+        Modal.show('INSTANT ER BYPASS — Skip Registration', bodyHTML, {
+            saveText: 'ACTIVATE BYPASS',
+            onSave: async function() {
+                var complaint = document.getElementById('bypass-complaint').value.trim();
+                var reason = document.getElementById('bypass-reason').value.trim();
+                var patientName = document.getElementById('bypass-name').value.trim() || 'UNKNOWN PATIENT';
+                if (!complaint) throw new Error('Chief complaint is required');
+                if (!reason) throw new Error('Emergency reason is required');
+
+                var nameParts = patientName.split(' ');
+                var firstName = nameParts[0] || 'UNKNOWN';
+                var lastName = nameParts.slice(1).join(' ') || 'PATIENT';
+
+                var res = await API.post('/clinical/instant-er-bypass/', {
+                    patient_name: firstName + ' ' + lastName,
+                    chief_complaint: complaint,
+                    reason: reason
+                });
+                var token = res.temporary_token || res.patient?.temporary_token || 'N/A';
+                showToast('BYPASS ACTIVATED — Temp Token: ' + token + ' — Begin treatment NOW!', 'success', 8000);
+                setTimeout(function() { location.reload(); }, 1500);
+            }
+        });
+    }
+
+    /* ========== RECONCILE EMERGENCY PATIENT ========== */
+    function openReconcileModal(tempToken, visitId) {
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 font-medium">' +
+            '<strong>Reconcile Patient:</strong> Complete formal registration for emergency bypass patient <code>' + tempToken + '</code>. This will generate a permanent MRN and link all clinical records.' +
+            '</div>' +
+            '<div class="grid grid-cols-2 gap-3">' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">First Name *</label><input type="text" id="rec-first" class="input-field" required></div>' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">Last Name *</label><input type="text" id="rec-last" class="input-field" required></div>' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">Date of Birth *</label><input type="date" id="rec-dob" class="input-field" required></div>' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">Gender *</label><select id="rec-gender" class="input-field"><option value="M">Male</option><option value="F">Female</option></select></div>' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">Phone</label><input type="text" id="rec-phone" class="input-field"></div>' +
+            '<div><label class="block text-xs font-bold text-slate-700 mb-1">Payer Category</label><select id="rec-payer" class="input-field"><option value="self_pay">Self Pay</option><option value="nhsia">NHSLA</option><option value="other">Other</option></select></div>' +
+            '</div>' +
+            '</div>';
+
+        Modal.show('Complete Emergency Patient Registration', bodyHTML, {
+            saveText: 'Reconcile & Register',
+            onSave: async function() {
+                var data = {
+                    temporary_token: tempToken,
+                    first_name: document.getElementById('rec-first').value.trim(),
+                    last_name: document.getElementById('rec-last').value.trim(),
+                    date_of_birth: document.getElementById('rec-dob').value,
+                    gender: document.getElementById('rec-gender').value,
+                    phone: document.getElementById('rec-phone').value.trim(),
+                    payer_category: document.getElementById('rec-payer').value
+                };
+                if (!data.first_name || !data.last_name || !data.date_of_birth) throw new Error('Name and DOB are required');
+
+                await API.post('/clinical/emergency-reconcile/', data);
+                showToast('Patient reconciled! MRN generated and clinical records linked.', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
+            }
+        });
+    }
+
+    function dispositionPatient(visitId) {
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Disposition *</label>' +
+            '<select id="disposition-type" class="input-field">' +
+            '<option value="admit">Admit to IPD</option>' +
+            '<option value="discharge">Discharge</option>' +
+            '<option value="transfer">Transfer to Another Department</option>' +
+            '</select>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Diagnosis / Notes *</label>' +
+            '<textarea id="disposition-notes" rows="2" class="input-field" placeholder="Admitting diagnosis and notes..."></textarea>' +
+            '</div>' +
+            '</div>';
+
+        Modal.show('Patient Disposition', bodyHTML, {
+            saveText: 'Process Disposition',
+            onSave: async function() {
+                var type = document.getElementById('disposition-type').value;
+                var notes = document.getElementById('disposition-notes').value.trim();
+                var visit = await API.getVisit(visitId);
+                var currentStatus = visit.status;
+                if (currentStatus !== 'in_progress') {
+                    await API.updateVisitStatus(visitId, 'in_progress');
+                }
+                await API.updateVisitStatus(visitId, 'completed');
+                if (type === 'discharge') {
+                    showToast('Patient discharged from ER!', 'success');
+                } else if (type === 'admit') {
+                    await API.createAdmission({
+                        patient: visit.patient,
+                        visit: visitId,
+                        admitting_diagnosis: notes || 'ER admission',
+                        admission_type: 'emergency',
+                        status: 'active'
+                    });
+                    showToast('Patient admitted to IPD. Assign a bed from the IPD dashboard.', 'success');
+                } else {
+                    showToast('Patient transfer initiated.', 'info');
+                }
+                location.reload();
+            }
+        });
+    }
+
+    function openEROrderModal() {
+        var erVisits = {{ er_visits|safe }};
+        if (!erVisits || erVisits.length === 0) {
+            showToast('No active ER patients', 'warning');
+            return;
+        }
+        var optionsHtml = erVisits.map(function(v) {
+            return '<option value="' + v.id + '">' + esc(v.patient_name || 'Patient') + ' — ' + (v.chief_complaint || 'No complaint') + '</option>';
+        }).join('');
+
+        var bodyHTML = '<div class="space-y-4">' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Select Patient *</label>' +
+            '<select id="er-order-patient" class="input-field">' + optionsHtml + '</select>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Order Type *</label>' +
+            '<select id="er-order-type" class="input-field">' +
+            '<option value="lab">Lab Test</option>' +
+            '<option value="radiology">Imaging/Radiology</option>' +
+            '</select>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-700 mb-1">Description *</label>' +
+            '<input type="text" id="er-order-desc" class="input-field" placeholder="e.g. CBC, Chest X-ray, Blood Culture...">' +
+            '</div>' +
+            '</div>';
+
+        Modal.show('Place Diagnostic Order', bodyHTML, {
+            saveText: 'Place Order',
+            onSave: async function() {
+                var visitId = document.getElementById('er-order-patient').value;
+                var orderType = document.getElementById('er-order-type').value;
+                var desc = document.getElementById('er-order-desc').value.trim();
+                if (!desc) { showToast('Please enter a description', 'warning'); return; }
+                try {
+                    await API.placeOrder(visitId, { order_type: orderType, order_description: desc });
+                    showToast('Order placed successfully', 'success');
+                    loadEROrders(visitId);
+                } catch(e) {
+                    showToast('Failed to place order', 'error');
+                }
+            }
+        });
+    }
+
+    function loadEROrders(visitId) {
+        API.getOrders(visitId).then(function(data) {
+            var orders = data.results || data || [];
+            var container = document.getElementById('er-orders-list');
+            if (orders.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">No orders for this patient</p>';
+                return;
+            }
+            container.innerHTML = orders.map(function(o) {
+                var statusColors = { pending: 'bg-yellow-100 text-yellow-800', in_progress: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', cancelled: 'bg-red-100 text-red-800' };
+                var color = statusColors[o.status] || 'bg-slate-100 text-slate-800';
+                return '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">' +
+                    '<div><span class="text-sm font-bold text-slate-800">' + esc(o.order_type.toUpperCase()) + '</span>' +
+                    '<span class="text-xs text-slate-500 ml-2">' + esc(o.order_description || '') + '</span></div>' +
+                    '<span class="px-2 py-0.5 text-xs font-bold rounded-full ' + color + '">' + esc(o.status) + '</span>' +
+                    '</div>';
+            }).join('');
+        }).catch(function() {
+            document.getElementById('er-orders-list').innerHTML = '<p class="text-sm text-red-400 text-center py-4">Error loading orders</p>';
+        });
+    }
+
+    function esc(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s || '')); return d.innerHTML; }
+</script>
+{% endblock %}

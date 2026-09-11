@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pharmacy Dispensing - JFD Hospital HMS{% endblock %}
+{% block page_title %}Pharmacy Dispensing Workstation{% endblock %}
+
+{% block content %}
+<div class="space-y-6 page-enter">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Pending Rx Orders</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-pending-rx">-</h3>
+                <span class="badge badge-warning text-[10px]">Awaiting</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Dispensed Today</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-dispensed-today">-</h3>
+                <span class="badge badge-success text-[10px]">Done</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Low Stock Alerts</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-low-stock">-</h3>
+                <span class="badge badge-warning text-[10px]">Alert</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-500 font-medium">Expired Items</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="stat-expired">-</h3>
+                <span class="badge badge-danger text-[10px]">Critical</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 glass-card p-5 space-y-4 accent-blue">
+            <div class="section-header-gradient rounded-xl p-4 flex items-center justify-between">
+                <h3 class="font-bold text-white text-base">Prescription Queue</h3>
+                <button onclick="loadPrescriptions()" class="text-[11px] font-bold text-blue-200 hover:text-white transition-colors">Refresh</button>
+            </div>
+            <div class="relative">
+                <input type="text" id="rx-search" placeholder="Search by patient, MRN, or Rx#..." class="input-field pl-9 text-xs" oninput="filterRxQueue(this.value)">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <div id="rx-queue" class="space-y-3 overflow-y-auto max-h-[440px]">
+                <div class="text-center py-6 text-slate-400 text-xs">Loading prescriptions...</div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-7 glass-card p-6 space-y-5 accent-emerald">
+            <div class="section-header-gradient rounded-xl p-4">
+                <h3 class="font-bold text-white text-lg">Dispensing Verification & Stock Deduction</h3>
+                <p class="text-xs text-emerald-100" id="disp-instruction">Select a prescription from the queue to verify and dispense</p>
+            </div>
+
+            <form method="post" action="{% url 'pharmacy-dispensing-page' %}" class="space-y-5" id="dispense-form">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Medication Name</label>
+                        <input type="text" id="disp-med-name" readonly class="input-field bg-slate-100" placeholder="-">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Patient Name</label>
+                        <input type="text" id="disp-patient" readonly class="input-field bg-slate-100" placeholder="-">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Dosage & Frequency</label>
+                        <input type="text" id="disp-dosage" readonly class="input-field bg-slate-100" placeholder="-">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Batch / Lot Number</label>
+                        <input type="text" name="batch_lot_number" id="disp-batch" class="input-field" placeholder="Enter batch number">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Quantity to Dispense</label>
+                        <input type="number" name="quantity_dispensed" id="disp-qty" min="1" class="input-field" placeholder="Qty">
+                    </div>
+                </div>
+
+                <div id="allergy-alert" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-xs font-bold text-red-700">
+                    <span>Allergy Alert: <span id="allergy-text"></span></span>
+                </div>
+
+                {% if pending_warnings %}
+                <div class="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl space-y-3">
+                    <p class="text-sm font-bold text-amber-800">Drug Safety Warnings</p>
+                    {% for w in pending_warnings %}
+                    <div class="p-3 rounded-lg {% if w.severity == 'severe' %}bg-red-100 border border-red-300{% elif w.severity == 'moderate' %}bg-amber-100 border border-amber-300{% else %}bg-yellow-50 border border-yellow-200{% endif %}">
+                        {% if w.type == 'allergy' %}
+                        <p class="text-xs font-bold text-red-700">Allergy: {{ w.allergen }} ({{ w.severity }})</p>
+                        <p class="text-xs text-slate-600">{{ w.message }}</p>
+                        <p class="text-xs text-slate-500">Reaction: {{ w.reaction }}</p>
+                        {% else %}
+                        <p class="text-xs font-bold text-amber-700">Interaction: {{ w.drug_a }} + {{ w.drug_b }} ({{ w.severity }})</p>
+                        <p class="text-xs text-slate-600">{{ w.description }}</p>
+                        {% if w.recommendation %}<p class="text-xs text-slate-500">Recommendation: {{ w.recommendation }}</p>{% endif %}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="flex items-center gap-3 pt-2">
+                        <form method="post" action="{% url 'pharmacy-dispensing-page' %}" class="inline">
+                            {% csrf_token %}
+                            {% for k, v in pending_form.items %}
+                            <input type="hidden" name="{{ k }}" value="{{ v }}">
+                            {% endfor %}
+                            <input type="hidden" name="confirm_warnings" value="yes">
+                            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-amber-600 rounded-lg hover:bg-amber-700">Confirm Dispense Despite Warnings</button>
+                        </form>
+                        <a href="{% url 'pharmacy-dispensing-page' %}" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <input type="hidden" name="prescription_item" id="disp-rx-item-id">
+                <input type="hidden" name="medication" id="disp-med-id">
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="clearDispenseForm()" class="px-5 py-2.5 text-xs font-bold text-red-600 bg-red-50 rounded-xl border border-red-200 hover:bg-red-100 transition-all">Clear</button>
+                    <button type="submit" class="btn-primary text-xs">Dispense & Deduct Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allPrescriptions = [];
+    let selectedPatientId = null;
+
+    async function loadPrescriptions() {
+        try {
+            const res = await fetch('/api/pharmacy/prescriptions/?_=' + Date.now(), {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
+            }).then(r => r.json());
+            allPrescriptions = res.results || res || [];
+
+            const pending = allPrescriptions.filter(p => p.status === 'pending' || p.status === 'active');
+            const dispensedToday = allPrescriptions.filter(p => {
+                if (!p.items) return false;
+                return p.items.some(i => i.quantity_dispensed > 0);
+            });
+
+            document.getElementById('stat-pending-rx').textContent = pending.length;
+            document.getElementById('stat-dispensed-today').textContent = dispensedToday.length;
+
+            try {
+                const lowRes = await API.request('GET', '/inventory/low-stock/');
+                const lowStock = lowRes.results || lowRes || [];
+                document.getElementById('stat-low-stock').textContent = lowStock.length;
+            } catch (e) { document.getElementById('stat-low-stock').textContent = '0'; }
+
+            try {
+                const expRes = await API.request('GET', '/inventory/expiring/');
+                const expired = expRes.results || expRes || [];
+                document.getElementById('stat-expired').textContent = expired.length;
+            } catch (e) { document.getElementById('stat-expired').textContent = '0'; }
+
+            renderRxQueue(pending);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function renderRxQueue(prescriptions) {
+        const container = document.getElementById('rx-queue');
+        if (prescriptions.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">No pending prescriptions</div>';
+            return;
+        }
+        container.innerHTML = '';
+        prescriptions.forEach(rx => {
+            const items = rx.items || [];
+            const firstItem = items[0];
+            const card = document.createElement('div');
+            card.className = 'p-4 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:border-primary/40 transition-all';
+            card.onclick = () => selectPrescription(rx);
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-mono text-xs font-bold text-primary">${Utils.escapeHtml(rx.prescription_number || rx.id.slice(0, 8))}</span>
+                    <span class="badge badge-warning text-[10px]">${rx.status || 'pending'}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm mt-1">${Utils.escapeHtml(rx.patient_name || rx.patient_mrn || '')}</h4>
+                <p class="text-xs text-slate-500 mt-0.5">${items.map(i => `${Utils.escapeHtml(i.medication_name || '')} - ${Utils.escapeHtml(i.dosage || '')} ${Utils.escapeHtml(i.frequency || '')}`).join(', ') || 'No items'}</p>
+                <p class="text-[11px] text-slate-400 mt-1">Ordered by: ${Utils.escapeHtml(rx.prescribed_by_name || '-')} - ${Utils.formatDateTime(rx.created_at)}</p>`;
+            container.appendChild(card);
+        });
+    }
+
+    function filterRxQueue(query) {
+        if (!query) { renderRxQueue(allPrescriptions.filter(p => p.status === 'pending' || p.status === 'active')); return; }
+        const q = query.toLowerCase();
+        const filtered = allPrescriptions.filter(p => {
+            if (p.status !== 'pending' && p.status !== 'active') return false;
+            return (p.patient_name || '').toLowerCase().includes(q) ||
+                (p.patient_mrn || '').toLowerCase().includes(q) ||
+                (p.prescription_number || '').toLowerCase().includes(q) ||
+                (p.items || []).some(i => (i.medication_name || '').toLowerCase().includes(q));
+        });
+        renderRxQueue(filtered);
+    }
+
+    async function selectPrescription(rx) {
+        try {
+            selectedPatientId = rx.patient;
+            const items = rx.items || [];
+
+            if (items.length > 0) {
+                const item = items[0];
+                document.getElementById('disp-rx-item-id').value = item.id;
+                document.getElementById('disp-med-name').value = item.medication_name || '';
+                document.getElementById('disp-med-id').value = item.medication || '';
+                document.getElementById('disp-dosage').value = `${item.dosage || ''} ${item.frequency || ''} x ${item.duration || ''}`;
+                document.getElementById('disp-qty').value = item.quantity_prescribed || 1;
+                document.getElementById('disp-patient').value = `${rx.patient_mrn || ''}`;
+                document.getElementById('disp-instruction').textContent = `Prescription ${rx.prescription_number || rx.id.slice(0, 8)} selected — verify and dispense`;
+
+                document.getElementById('disp-batch').value = '';
+                if (item.medication) {
+                    try {
+                        const itemRes = await API.request('GET', `/inventory/items/?medication=${item.medication}`);
+                        const invItems = itemRes.results || itemRes || [];
+                        if (invItems.length > 0) {
+                            const invItemId = invItems[0].id;
+                            const stockRes = await API.request('GET', `/inventory/stock/?item=${invItemId}`);
+                            const stockList = stockRes.results || stockRes || [];
+                            const available = stockList.filter(s => parseFloat(s.quantity_on_hand) > 0);
+                            if (available.length > 0) {
+                                const s = available[0];
+                                document.getElementById('disp-batch').value = s.batch_lot_number || '';
+                                document.getElementById('disp-instruction').textContent = `Auto-filled batch: ${s.batch_lot_number} (${s.quantity_on_hand} in stock)`;
+                            } else {
+                                showToast('No stock available for this medication', 'warning');
+                            }
+                        } else {
+                            showToast('Medication not found in inventory', 'warning');
+                        }
+                    } catch (e) {
+                        console.error('Stock lookup failed:', e);
+                    }
+                }
+            }
+        } catch (err) {
+            showToast('Error loading prescription details', 'error');
+        }
+    }
+
+    function clearDispenseForm() {
+        document.getElementById('disp-rx-item-id').value = '';
+        document.getElementById('disp-med-name').value = '';
+        document.getElementById('disp-patient').value = '';
+        document.getElementById('disp-dosage').value = '';
+        document.getElementById('disp-batch').value = '';
+        document.getElementById('disp-qty').value = '';
+        document.getElementById('disp-med-id').value = '';
+        document.getElementById('allergy-alert').classList.add('hidden');
+        document.getElementById('disp-instruction').textContent = 'Select a prescription from the queue to verify and dispense';
+    }
+
+    loadPrescriptions();
+</script>
+{% endblock %}
