@@ -186,24 +186,23 @@ WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = False
 
 # Storage backends: Cloudinary for media (when configured), WhiteNoise for static
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
+    },
+}
+
+# Use Cloudinary for media if explicitly configured and working
 if os.environ.get('CLOUDINARY_URL', config('CLOUDINARY_URL', default='')):
-    STORAGES = {
-        "default": {
-            "BACKEND": "django_cloudinary_storage.storage.MediaStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.StaticFilesStorage",
-        },
-    }
-else:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.StaticFilesStorage",
-        },
-    }
+    try:
+        import cloudinary
+        cloudinary.config()
+        STORAGES["default"]["BACKEND"] = "django_cloudinary_storage.storage.MediaStorage"
+    except Exception:
+        pass  # Fall back to FileSystemStorage
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.1/ref/settings/#default-auto-field
