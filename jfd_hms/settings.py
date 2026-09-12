@@ -284,11 +284,8 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='JFD Hospital <noreply@jfdhospital.gov.lr>')
 
 # Cloudinary (production media storage for Patient photos + Hospital logo)
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
-    'API_KEY': config('CLOUDINARY_API_KEY', default=''),
-    'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
-}
+# Reads CLOUDINARY_URL env var automatically: cloudinary://key:secret@cloud_name
+# Falls back to local MEDIA_ROOT when CLOUDINARY_URL is not set (local dev)
 
 # HMS Specific Settings
 HMS_MRN_FORMAT = 'JFD-{year}-{sequence:05d}'
