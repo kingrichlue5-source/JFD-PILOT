@@ -97,7 +97,7 @@ WSGI_APPLICATION = 'jfd_hms.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 # Railway provides DATABASE_URL; local dev uses SQLite
 
-DATABASE_URL = config('DATABASE_URL', default='')
+DATABASE_URL = config('DATABASE_URL', default='') or os.environ.get('DATABASE_URL', '')
 
 if DATABASE_URL:
     DATABASES = {
