@@ -181,6 +181,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# WhiteNoise: serve static files from STATICFILES_DIRS without collectstatic
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = False
+
 # Storage backends: Cloudinary for media, WhiteNoise for static
 STORAGES = {
     "default": {
