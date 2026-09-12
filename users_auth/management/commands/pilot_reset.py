@@ -61,9 +61,11 @@ class Command(BaseCommand):
 
     def clear_non_user_tables(self):
         """Delete all data from non-user tables."""
-        # Disable FK checks for SQLite to avoid constraint errors
-        with connection.cursor() as cursor:
-            cursor.execute('PRAGMA foreign_keys = OFF')
+        is_sqlite = connection.vendor == 'sqlite'
+
+        if is_sqlite:
+            with connection.cursor() as cursor:
+                cursor.execute('PRAGMA foreign_keys = OFF')
 
         tables_to_clear = [
             # Clinical (actual db_table names from models)
@@ -95,16 +97,19 @@ class Command(BaseCommand):
             cleared = 0
             for table in tables_to_clear:
                 try:
-                    cursor.execute(f'DELETE FROM "{table}"')
+                    if is_sqlite:
+                        cursor.execute(f'DELETE FROM "{table}"')
+                    else:
+                        cursor.execute(f'TRUNCATE TABLE "{table}" CASCADE')
                     count = cursor.rowcount
                     if count > 0:
                         self.stdout.write(f'  Cleared {count} rows from {table}')
                     cleared += 1
-                except Exception as e:
-                    pass  # Table may not exist
+                except Exception:
+                    pass
 
-            # Re-enable FK checks
-            cursor.execute('PRAGMA foreign_keys = ON')
+            if is_sqlite:
+                cursor.execute('PRAGMA foreign_keys = ON')
 
         self.stdout.write(f'  Cleared {cleared} tables')
 
