@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+import urllib.parse
 from pathlib import Path
 from decouple import config, Csv
 import dj_database_url
@@ -178,6 +179,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -185,15 +187,33 @@ MEDIA_ROOT = BASE_DIR / 'media'
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = False
 
-# Storage backends: WhiteNoise for static, local for media
+# Cloudinary for production (Railway), local storage for dev
+_cloudinary_url = os.environ.get('CLOUDINARY_URL', '') or config('CLOUDINARY_URL', default='')
+
+if _cloudinary_url and not os.environ.get('CLOUDINARY_CLOUD_NAME'):
+    _parsed = urllib.parse.urlparse(_cloudinary_url)
+    os.environ['CLOUDINARY_CLOUD_NAME'] = _parsed.hostname or ''
+    os.environ['CLOUDINARY_API_KEY'] = _parsed.username or ''
+    os.environ['CLOUDINARY_API_SECRET'] = _parsed.password or ''
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+}
+
+# Storage backends
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.StaticFilesStorage",
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.StaticFilesStorage',
     },
 }
+
+if _cloudinary_url:
+    INSTALLED_APPS = ['cloudinary', 'cloudinary_storage'] + INSTALLED_APPS
+    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+else:
+    STORAGES['default'] = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.1/ref/settings/#default-auto-field
@@ -287,10 +307,6 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='JFD Hospital <noreply@jfdhospital.gov.lr>')
-
-# Cloudinary (production media storage for Patient photos + Hospital logo)
-# Reads CLOUDINARY_URL env var automatically: cloudinary://key:secret@cloud_name
-# Falls back to local MEDIA_ROOT when CLOUDINARY_URL is not set (local dev)
 
 # HMS Specific Settings
 HMS_MRN_FORMAT = 'JFD-{year}-{sequence:05d}'
