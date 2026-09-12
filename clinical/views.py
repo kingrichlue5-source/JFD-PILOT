@@ -2003,8 +2003,12 @@ def complete_clinical_first_registration(request):
               },
               request=request)
 
-    from billing.services import post_registration_fee_to_invoice
-    post_registration_fee_to_invoice(patient, visit)
+    try:
+        from billing.services import post_registration_fee_to_invoice
+        post_registration_fee_to_invoice(patient, visit)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f'Registration fee posting failed: {e}')
 
     return Response({
         'patient': {
