@@ -199,6 +199,11 @@
             </div>
         </div>
 
+        <div class="glass-card accent-blue p-6 space-y-4">
+            <h3 class="section-header-gradient rounded-lg px-4 py-2 font-bold text-sm">Documents & Photos</h3>
+            {% include "partials/webcam_upload.html" with input_name="documents" photo_input_name="photo" %}
+        </div>
+
         <div class="flex items-center justify-end gap-3">
             <a href="{% if existing_visit %}{% url 'triage-pending-page' %}{% else %}{% url 'index' %}{% endif %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl border border-slate-200 hover:bg-slate-200 transition-all">Cancel</a>
             <button type="submit" class="btn-primary text-xs">{% if existing_visit %}Complete Registration & Start Consultation{% else %}Register Patient & Send to Queue{% endif %}</button>

@@ -203,6 +203,7 @@ class TriageRecord(models.Model):
     pain_scale = models.IntegerField(blank=True, null=True)
     blood_glucose = models.IntegerField(blank=True, null=True)
     screening_notes = models.TextField(blank=True, null=True)
+    photo = models.ImageField(upload_to='triage/photos/', blank=True, null=True)
     triage_nurse = models.ForeignKey('users_auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='triage_records')
     triage_time = models.DateTimeField(auto_now_add=True)
     sync_status = models.CharField(max_length=10, choices=SyncStatus.choices, default=SyncStatus.SYNCED)

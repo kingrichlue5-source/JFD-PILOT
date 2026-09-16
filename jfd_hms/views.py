@@ -239,6 +239,22 @@ def patient_register(request):
                 import logging
                 logging.getLogger(__name__).warning(f'Registration fee posting failed: {e}')
 
+            doc_files = request.FILES.getlist('documents')
+            for f in doc_files:
+                from patients.models import PatientDocument
+                from django.core.files.storage import default_storage
+                path = default_storage.save(f'documents/{patient.id}/{f.name}', f)
+                doc_url = default_storage.url(path)
+                PatientDocument.objects.create(
+                    patient=patient,
+                    document_type='registration',
+                    document_name=f.name,
+                    file_url=doc_url,
+                    file_size=f.size,
+                    mime_type=f.content_type or '',
+                    uploaded_by=user.id if user else None,
+                )
+
             messages.success(request, f'Patient {patient.mrn} registered! Visit {visit.visit_number} created.')
             if existing_visit:
                 return redirect('triage-pending-page')
@@ -320,10 +336,10 @@ def triage_dashboard(request):
     from clinical.forms import TriageForm
     from audit.utils import log_audit
     if request.method == 'POST':
-        form = TriageForm(request.POST)
+        form = TriageForm(request.POST, request.FILES)
         if form.is_valid():
             try:
-                triage_record, routing, visit = form.process(user=request.user)
+                triage_record, routing, visit = form.process(user=request.user, files=request.FILES)
                 log_audit('clinical', 'triage_records', triage_record.id, 'CREATE',
                           new_values={
                               'visit_id': str(visit.id),
@@ -1572,3 +1588,30 @@ def admin_triage_criteria(request):
         'inactive_count': criteria.filter(is_active=False).count(),
     }
     return render(request, 'admin/triage_criteria.html', context)
+
+
+@login_required(login_url='/login/')
+@require_permission('PATIENT_VIEW')
+def patient_profile(request, patient_id):
+    from patients.models import Patient, PatientDocument
+    from clinical.models import Visit, TriageRecord, Encounter
+    from billing.models import Invoice
+    try:
+        patient = Patient.objects.get(id=patient_id, is_deleted=False)
+    except Patient.DoesNotExist:
+        from django.contrib import messages
+        messages.error(request, 'Patient not found.')
+        return redirect('patient-search-page')
+
+    visits = Visit.objects.filter(patient=patient, is_deleted=False).order_by('-created_at')[:10]
+    documents = PatientDocument.objects.filter(patient=patient, is_active=True).order_by('-uploaded_at')
+    triage_records = TriageRecord.objects.filter(patient=patient).order_by('-triage_time')[:5]
+    invoices = Invoice.objects.filter(patient=patient, is_deleted=False).order_by('-created_at')[:5]
+
+    return render(request, 'patients/profile.html', {
+        'patient': patient,
+        'visits': visits,
+        'documents': documents,
+        'triage_records': triage_records,
+        'invoices': invoices,
+    })

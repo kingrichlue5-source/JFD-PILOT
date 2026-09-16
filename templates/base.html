@@ -56,12 +56,39 @@
 
             <!-- Navigation -->
             <nav class="flex-1 px-3 space-y-1">
+                {% user_has_role "ADMIN" as is_admin %}
+                {% user_has_role "SYS_ADMIN" as is_sys_admin %}
+                {% user_has_role "DOCTOR" as is_doctor %}
+                {% user_has_role "NURSE" as is_nurse %}
+                {% user_has_role "TRIAGE_NURSE" as is_triage_nurse %}
+                {% user_has_role "PHARMACIST" as is_pharmacist %}
+                {% user_has_role "LAB_TECH" as is_lab_tech %}
+                {% user_has_role "CASHIER" as is_cashier %}
+                {% user_has_role "INV_MGR" as is_inv_mgr %}
+                {% user_has_role "MRO" as is_mro %}
+                {% user_has_role "MED_DIRECTOR" as is_med_director %}
+                {% user_has_role "NURSE_MGR" as is_nurse_mgr %}
+
                 <a href="/" class="sidebar-link-wpos {% if request.path == '/' %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     <span>Dashboard</span>
                 </a>
+
+                {% user_has_permission "TRIAGE_PERFORM" as can_triage %}
+                {% if can_triage and is_doctor or can_triage and is_nurse or can_triage and is_triage_nurse %}
+                <a href="/clinical/triage/" class="sidebar-link-wpos {% if '/clinical/triage' in request.path and '/triage-pending' not in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>Triage</span>
+                </a>
+                {% endif %}
                 {% user_has_permission "PATIENT_CREATE" as can_create_patient %}
-                {% if can_create_patient %}
+                {% if can_create_patient and is_triage_nurse or can_create_patient and is_nurse %}
+                <a href="/clinical/triage-pending/" class="sidebar-link-wpos {% if '/triage-pending' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Triage Queue</span>
+                </a>
+                {% endif %}
+                {% if can_create_patient and is_mro or can_create_patient and is_admin %}
                 <a href="/patients/register/" class="sidebar-link-wpos {% if '/patients/register' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                     <span>Register Patient</span>
@@ -74,39 +101,20 @@
                     <span>Search Patients</span>
                 </a>
                 {% endif %}
+
                 {% user_has_permission "ENCOUNTER_VIEW" as can_view_encounter %}
-                {% if can_view_encounter %}
-                <a href="/clinical/appointments/" class="sidebar-link-wpos {% if '/clinical/appointments' in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <span>Appointments</span>
-                </a>
-                <a href="/clinical/follow-up-queue/" class="sidebar-link-wpos {% if '/follow-up-queue' in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    <span>Follow-Up Queue</span>
-                </a>
-                {% endif %}
-                {% user_has_permission "TRIAGE_PERFORM" as can_triage %}
-                {% if can_triage %}
-                <a href="/clinical/triage/" class="sidebar-link-wpos {% if '/clinical/triage' in request.path and '/triage-pending' not in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    <span>Triage</span>
-                </a>
-                {% endif %}
-                {% user_has_permission "PATIENT_CREATE" as can_create_patient %}
-                {% if can_create_patient %}
-                <a href="/clinical/triage-pending/" class="sidebar-link-wpos {% if '/triage-pending' in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>Triage Queue</span>
-                </a>
-                {% endif %}
                 {% user_has_permission "ENCOUNTER_EDIT" as can_edit_encounter %}
-                {% if can_edit_encounter %}
+                {% if can_edit_encounter and is_doctor or can_edit_encounter and is_nurse %}
                 <a href="/opd/" class="sidebar-link-wpos {% if '/opd' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <span>OPD Consultation</span>
                 </a>
                 {% endif %}
-                {% if can_view_encounter %}
+                {% if can_view_encounter and is_doctor or can_view_encounter and is_nurse %}
+                <a href="/clinical/nurse-notes/" class="sidebar-link-wpos {% if '/clinical/nurse-notes' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <span>Nurse Notes</span>
+                </a>
                 <a href="/clinical/ipd/" class="sidebar-link-wpos {% if '/clinical/ipd' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     <span>IPD / Beds</span>
@@ -123,10 +131,6 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <span>Pediatric Assessment</span>
                 </a>
-                <a href="/clinical/nurse-notes/" class="sidebar-link-wpos {% if '/clinical/nurse-notes' in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    <span>Nurse Notes</span>
-                </a>
                 <a href="/clinical/obgyn/" class="sidebar-link-wpos {% if '/clinical/obgyn' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                     <span>OBGYN</span>
@@ -136,23 +140,24 @@
                     <span>Surgery</span>
                 </a>
                 {% endif %}
+
                 {% user_has_permission "ORDER_VIEW" as can_view_order %}
-                {% if can_view_order %}
+                {% if can_view_order and is_lab_tech or can_view_order and is_doctor %}
                 <a href="/clinical/diagnostics/" class="sidebar-link-wpos {% if '/clinical/diagnostics' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <span>Diagnostics</span>
                 </a>
                 {% endif %}
                 {% user_has_permission "RX_VIEW" as can_view_rx %}
-                {% if can_view_rx %}
+                {% if can_view_rx and is_pharmacist %}
                 <a href="/pharmacy/dispensing/" class="sidebar-link-wpos {% if '/pharmacy' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                     <span>Pharmacy</span>
                 </a>
                 {% endif %}
                 {% user_has_permission "INVOICE_VIEW" as can_view_invoice %}
-                {% if can_view_invoice %}
-                <a href="/cashier/" class="sidebar-link-wpos {% if '/cashier' in request.path %}active{% endif %}">
+                {% if can_view_invoice and is_cashier %}
+                <a href="/cashier/" class="sidebar-link-wpos {% if '/cashier' in request.path and '/payment-history' not in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     <span>Billing / Cashier</span>
                 </a>
@@ -162,29 +167,39 @@
                 </a>
                 {% endif %}
                 {% user_has_permission "INVENTORY_VIEW" as can_view_inv %}
-                {% if can_view_inv %}
+                {% if can_view_inv and is_inv_mgr %}
                 <a href="/inventory/" class="sidebar-link-wpos {% if request.path == '/inventory/' %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     <span>Inventory</span>
                 </a>
                 {% endif %}
                 {% user_has_permission "INVENTORY_MANAGE" as can_manage_inv %}
-                {% if can_manage_inv %}
+                {% if can_manage_inv and is_inv_mgr %}
                 <a href="/inventory/manage/" class="sidebar-link-wpos {% if '/inventory/manage' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     <span>Manage Items</span>
                 </a>
                 {% endif %}
                 {% user_has_permission "REPORT_VIEW" as can_view_report %}
-                {% if can_view_report %}
+                {% if can_view_report and is_admin or can_view_report and is_med_director %}
                 <a href="/reports/hmis/" class="sidebar-link-wpos {% if '/reports' in request.path %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     <span>Reports / HMIS</span>
                 </a>
                 {% endif %}
 
-                {% user_has_role "ADMIN" as is_admin %}
-                {% if is_admin %}
+                {% if can_view_encounter and is_doctor or can_view_encounter and is_nurse or can_view_encounter and is_mro %}
+                <a href="/clinical/appointments/" class="sidebar-link-wpos {% if '/clinical/appointments' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>Appointments</span>
+                </a>
+                <a href="/clinical/follow-up-queue/" class="sidebar-link-wpos {% if '/follow-up-queue' in request.path %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Follow-Up Queue</span>
+                </a>
+                {% endif %}
+
+                {% if is_admin or is_sys_admin %}
                 <div class="pt-4 pb-1">
                     <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 mb-2">Administration</p>
                 </div>
@@ -209,7 +224,7 @@
                     <span>Login History</span>
                 </a>
                 <a href="/admin/triage-criteria/" class="sidebar-link-wpos {% if '/admin/triage-criteria' in request.path %}active{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                     <span>Triage Criteria</span>
                 </a>
                 <a href="/admin/settings/" class="sidebar-link-wpos {% if '/admin/settings' in request.path %}active{% endif %}">

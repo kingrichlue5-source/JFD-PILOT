@@ -29,6 +29,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('patients/search/', views.patient_search, name='patient-search-page'),
     path('patients/register/', views.patient_register, name='patient-register-page'),
+    path('patients/<uuid:patient_id>/profile/', views.patient_profile, name='patient-profile-page'),
     path('clinical/triage-pending/', views.triage_awaiting_registration, name='triage-pending-page'),
     path('clinical/follow-up-queue/', views.follow_up_queue, name='follow-up-queue-page'),
     path('clinical/triage/', views.triage_dashboard, name='triage-dashboard-page'),

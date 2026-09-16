@@ -14,9 +14,13 @@ class TriageForm(forms.Form):
     blood_pressure_diastolic = forms.IntegerField(required=False, widget=forms.NumberInput(attrs={'class': 'input-field', 'placeholder': '80'}))
     oxygen_saturation = forms.DecimalField(required=False, widget=forms.NumberInput(attrs={'class': 'input-field', 'step': '0.1', 'placeholder': '98'}))
     screening_notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2, 'class': 'input-field', 'placeholder': 'Additional notes...'}))
+    photo = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'input-field', 'accept': 'image/*', 'id': 'triage-photo-input'}))
 
-    def process(self, user=None):
+    def process(self, user=None, files=None):
         visit = Visit.objects.get(id=self.cleaned_data['visit_id'], is_deleted=False)
+        photo_file = None
+        if files:
+            photo_file = files.get('photo')
         triage_record = TriageRecord.objects.create(
             visit=visit,
             patient=visit.patient,
@@ -29,8 +33,25 @@ class TriageForm(forms.Form):
             blood_pressure_diastolic=self.cleaned_data.get('blood_pressure_diastolic'),
             oxygen_saturation=self.cleaned_data.get('oxygen_saturation'),
             screening_notes=self.cleaned_data.get('screening_notes', ''),
+            photo=photo_file,
             triage_nurse=user if user and user.is_authenticated else None
         )
+        if files and visit.patient:
+            from patients.models import PatientDocument
+            from django.core.files.storage import default_storage
+            doc_files = files.getlist('documents')
+            for f in doc_files:
+                path = default_storage.save(f'documents/{visit.patient.id}/{f.name}', f)
+                doc_url = default_storage.url(path)
+                PatientDocument.objects.create(
+                    patient=visit.patient,
+                    document_type='triage',
+                    document_name=f.name,
+                    file_url=doc_url,
+                    file_size=f.size,
+                    mime_type=f.content_type or '',
+                    uploaded_by=user.id if user else None,
+                )
         visit.chief_complaint = self.cleaned_data['chief_complaint']
         visit.triage_priority = str(self.cleaned_data['acuity_level'])
         visit.triage_notes = self.cleaned_data.get('screening_notes', '')
