@@ -210,8 +210,13 @@ STORAGES = {
 }
 
 if _cloudinary_url:
-    INSTALLED_APPS = ['cloudinary', 'cloudinary_storage'] + INSTALLED_APPS
-    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+    try:
+        import cloudinary
+        import cloudinary_storage
+        INSTALLED_APPS = ['cloudinary', 'cloudinary_storage'] + INSTALLED_APPS
+        STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+    except ImportError:
+        STORAGES['default'] = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
 else:
     STORAGES['default'] = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
 

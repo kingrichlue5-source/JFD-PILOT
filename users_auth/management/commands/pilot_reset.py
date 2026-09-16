@@ -218,6 +218,16 @@ class Command(BaseCommand):
                 'department': dept_surg,
                 'role_code': 'DOCTOR',
             },
+            {
+                'username': 'inventory',
+                'password': 'inv123',
+                'first_name': 'Joseph',
+                'last_name': 'Mensah',
+                'email': 'inventory@jfdhospital.gov.lr',
+                'job_title': 'Inventory Manager',
+                'department': dept_pharm or dept_opd,
+                'role_code': 'INV_MGR',
+            },
         ]
 
         for data in users_data:
