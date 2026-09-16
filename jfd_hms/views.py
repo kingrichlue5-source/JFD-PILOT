@@ -1755,3 +1755,146 @@ def debug_env(request):
         checks['static_files'] = f'ERROR: {e}'
 
     return JsonResponse(checks, json_dumps_params={'indent': 2})
+
+
+@csrf_exempt
+def debug_render(request):
+    """Diagnostic: try to render the failing templates and return full traceback."""
+    import traceback
+    import json
+    from django.http import JsonResponse
+    from django.test import RequestFactory, TestCase
+    from django.contrib.sessions.middleware import SessionMiddleware
+    from django.contrib.messages.middleware import MessageMiddleware
+
+    results = {}
+
+    # Create a fake request with session support
+    factory = RequestFactory()
+    fake_request = factory.get('/debug-render/')
+    # Add session middleware
+    SessionMiddleware(lambda r: None).process_request(fake_request)
+    fake_request.session.save()
+    # Add messages middleware
+    MessageMiddleware(lambda r: None).process_request(fake_request)
+
+    # If logged in, use that user
+    if request.user.is_authenticated:
+        fake_request.user = request.user
+    else:
+        from django.contrib.auth.models import AnonymousUser
+        fake_request.user = AnonymousUser()
+
+    # Test 1: Render register template (GET, no form)
+    try:
+        from django.shortcuts import render as django_render
+        from patients.forms import PatientRegistrationForm
+        form = PatientRegistrationForm()
+        html = django_render(fake_request, 'patients/register.html', {
+            'form': form,
+            'existing_visit': None,
+            'triage_record': None,
+        }).content.decode('utf-8')
+        results['register'] = {'status': 'OK', 'length': len(html)}
+    except Exception as e:
+        results['register'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    # Test 2: Render triage template (GET, no context)
+    try:
+        from django.shortcuts import render as django_render
+        html = django_render(fake_request, 'clinical/triage.html', {}).content.decode('utf-8')
+        results['triage'] = {'status': 'OK', 'length': len(html)}
+    except Exception as e:
+        results['triage'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    # Test 3: Render base.html directly
+    try:
+        from django.shortcuts import render as django_render
+        html = django_render(fake_request, 'base.html', {}).content.decode('utf-8')
+        results['base'] = {'status': 'OK', 'length': len(html)}
+    except Exception as e:
+        results['base'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    # Test 4: Render webcam partial alone
+    try:
+        from django.template.loader import get_template
+        t = get_template('partials/webcam_upload.html')
+        html = t.render({'input_name': 'documents', 'photo_input_name': 'photo'}, fake_request)
+        results['webcam_partial'] = {'status': 'OK', 'length': len(html)}
+    except Exception as e:
+        results['webcam_partial'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    # Test 5: Check PatientRegistrationForm rendering
+    try:
+        from patients.forms import PatientRegistrationForm
+        form = PatientRegistrationForm()
+        # Force render each field
+        for field_name, field in form.fields.items():
+            try:
+                bound_field = form[field_name]
+                html = str(bound_field)
+            except Exception as field_e:
+                results['form_field_error'] = {
+                    'field': field_name,
+                    'error': str(field_e),
+                    'type': type(field_e).__name__,
+                    'traceback': traceback.format_exc(),
+                }
+                break
+        else:
+            results['form_render'] = {'status': 'OK'}
+    except Exception as e:
+        results['form_render'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    # Test 6: Check TriageForm rendering
+    try:
+        from clinical.forms import TriageForm
+        form = TriageForm()
+        for field_name, field in form.fields.items():
+            try:
+                bound_field = form[field_name]
+                html = str(bound_field)
+            except Exception as field_e:
+                results['triage_form_field_error'] = {
+                    'field': field_name,
+                    'error': str(field_e),
+                    'type': type(field_e).__name__,
+                    'traceback': traceback.format_exc(),
+                }
+                break
+        else:
+            results['triage_form_render'] = {'status': 'OK'}
+    except Exception as e:
+        results['triage_form_render'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+        }
+
+    return JsonResponse(results, json_dumps_params={'indent': 2})
