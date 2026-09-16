@@ -93,6 +93,7 @@ Template views are in `jfd_hms/views.py` and serve pages at root paths (e.g., `/
 
 - **No CI/CD or deployment config exists.** No Dockerfile, docker-compose, Procfile, or GitHub Actions.
 - **No linting/typecheck tools configured.** No flake8, ruff, mypy, pylint, or pre-commit hooks.
+- **CRITICAL: Django template tags inside HTML comments cause errors.** `<!-- {% include "foo" %} -->` is NOT a comment to Django — it's processed as an `{% include %}` tag. Use `{# #}` Django template comments instead. This caused a RecursionError crash on production for `/patients/register/` and `/clinical/triage/` because `webcam_upload.html` had `{% include %}` inside `<!-- -->`.
 - Templates at `templates/pharmacy/dispensing.html`, `templates/billing/cashier.html`, and `templates/clinical/opd_consultation.html` reference `{% static %}` without `{% load static %}` — will crash if served via Django templates.
 - `billing/signals.py` hardcodes `user_id=None` and `user_ip='127.0.0.1'` in audit logs — does not capture the actual request user.
 - Seed data script (`seed_data.py`) imports models directly and expects `django.setup()` to have run.
