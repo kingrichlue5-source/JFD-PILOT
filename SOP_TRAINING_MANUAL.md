@@ -1,7 +1,7 @@
 # JFD Hospital HMS — Training Manual & Standard Operating Procedures
 ## Step-by-Step Guide for Hospital Staff
 
-**Version:** 7.0 — September 2026
+**Version:** 8.0 — SOP sidebar order, role-based visibility, webcam capture, document upload, patient profile
 **System:** JFD Hospital Management Information System
 **Hospital:** Jackson F. Doe Memorial Regional Referral Hospital
 
@@ -22,19 +22,21 @@
 
 | Step | Action | Where to Click |
 |------|--------|----------------|
-| 1 | From sidebar, click **"Register Patient"** | Left sidebar → Register Patient |
+| 1 | From sidebar, click **"Register Patient"** | Sidebar → Register Patient (MRO/Admin only) |
 | 2 | Fill in: **First Name**, **Last Name** | Registration form |
 | 3 | Fill in: **Date of Birth** (use calendar picker) | Registration form |
 | 4 | Select: **Gender** (Male / Female) | Dropdown |
 | 5 | Fill in: **Phone Number** (if available) | Registration form |
 | 6 | *(Optional)* **Take patient photo** — click camera icon for front-camera selfie | Photo section (top-left) |
-| 7 | Select: **Payer Category** (Self Pay / NHSLA / Other) | Dropdown |
-| 8 | Select **Visit Type**: OPD / Emergency / Pediatric / OBGYN / Surgery | Dropdown |
-| 9 | Enter **Chief Complaint** (if known) | Text area |
-| 10 | Click **"Register Patient & Send to Queue"** | Bottom of form |
-| 11 | **System shows MRN** (e.g., JFD-2026-00015) | Success message |
-| 12 | **Registration fee ($5) auto-charged** — appears on patient invoice | Automatic |
-| 13 | **Tell the patient their MRN** — they need it forever | Verbal |
+| 7 | *(Optional)* **Open Camera** for webcam capture — click "Open Camera" → live video → "Capture" | Documents & Photos section |
+| 8 | *(Optional)* **Upload documents** — drag & drop or click to browse (PDF, DOCX, images) | Documents & Photos section |
+| 9 | Select: **Payer Category** (Self Pay / NHSLA / Other) | Dropdown |
+| 10 | Select **Visit Type**: OPD / Emergency / Pediatric / OBGYN / Surgery | Dropdown |
+| 11 | Enter **Chief Complaint** (if known) | Text area |
+| 12 | Click **"Register Patient & Send to Queue"** | Bottom of form |
+| 13 | **System shows MRN** (e.g., JFD-2026-00015) | Success message |
+| 14 | **Registration fee ($5) auto-charged** — appears on patient invoice | Automatic |
+| 15 | **Tell the patient their MRN** — they need it forever | Verbal |
 
 **What just happened?**
 - Patient created with lifelong MRN number
@@ -140,7 +142,7 @@
 
 | Step | Action | Where to Click |
 |------|--------|----------------|
-| 1 | From sidebar, click **"Triage"** | Sidebar → Triage icon |
+| 1 | From sidebar, click **"Triage"** | Sidebar → Triage (Triage Nurse/Doctor/Nurse only) |
 | 2 | **See the Triage Queue** on the left — patients waiting | Left panel |
 | 3 | **Click on a patient** in the queue | Patient card |
 | 4 | Patient's name and MRN appear on the right | Right panel |
@@ -156,7 +158,9 @@
 | 8 | **Review the suggestion** | |
 | | → **Agree?** Keep the suggested level | |
 | | → **Disagree?** Select a different level + write justification | Override section |
-| 9 | Click **"Complete Triage & Route Patient"** | Green button |
+| 9 | *(Optional)* **Capture photo** — click "Open Camera" → live video → "Capture" | Photo & Documents section |
+| 10 | *(Optional)* **Upload documents** — drag & drop lab results, referral letters, etc. | Photo & Documents section |
+| 11 | Click **"Complete Triage & Route Patient"** | Green button |
 
 **What just happened?**
 - Patient's vitals recorded
@@ -289,7 +293,7 @@
 
 | Step | Action | Where to Click |
 |------|--------|----------------|
-| 1 | From sidebar, click **"OPD"** | Sidebar → OPD icon |
+| 1 | From sidebar, click **"OPD Consultation"** | Sidebar → OPD Consultation (Doctor/Nurse only) |
 | 2 | Click **"Find Active Visits"** | Button on OPD page |
 | 3 | **See list of patients** waiting for you | Modal list |
 | 4 | **Click on a patient** to select | Visit card |
@@ -761,21 +765,33 @@
 
 ---
 
-## SOP-31: Patient Photo Capture
+## SOP-31: Patient Photo Capture & Document Upload
 
-**When:** Registering a new patient or updating their record.
+**When:** Registering a new patient or during triage assessment.
+
+### Photo Capture (3 methods)
 
 | Step | Action | Where to Click |
 |------|--------|----------------|
-| 1 | On registration form, find the **photo section** | Top-left of Personal Information card |
-| 2 | Click the **camera icon** or **file upload** area | Photo preview area |
-| 3 | **Take a selfie** using front camera (mobile) | Device camera opens |
-| 4 | OR **select a photo file** from device | File picker (JPG/PNG, max 5MB) |
-| 5 | **Preview** shows in the circular frame | Live preview |
-| 6 | Complete rest of registration form | Form fields |
-| 7 | Submit — **photo saved with patient record** | Automatic |
+| 1 | On registration/triage form, find the **"Documents & Photos"** section | Below Visit Details |
+| 2a | **Method 1 — Webcam:** Click **"Open Camera"** → live video feed → click **"Capture"** | Documents & Photos section |
+| 2b | **Method 2 — Mobile camera:** Click the photo field → device opens front camera | Photo section (top-left) |
+| 2c | **Method 3 — File upload:** Click photo field → select image from device | File picker (JPG/PNG) |
+| 3 | **Preview** shows in the circular frame | Live preview |
+| 4 | Submit — **photo saved with patient/triage record** | Automatic |
 
-**Note:** Photo is optional. If skipped, the patient record shows initials in the EMR drawer.
+### Document Upload
+
+| Step | Action | Where to Click |
+|------|--------|----------------|
+| 1 | Scroll to **"Documents & Photos"** section | Below Visit Details |
+| 2 | **Drag & drop** files into the upload zone, OR **click to browse** | Dashed border area |
+| 3 | Select any files: PDF, DOCX, XLSX, JPG, PNG (max 10MB each) | File picker |
+| 4 | **Files appear in a list** with name, size, and remove button | File list below upload zone |
+| 5 | Upload more files by dragging or clicking again | Repeat as needed |
+| 6 | Submit — **files saved to patient record** | Automatic |
+
+**Note:** Photo is optional. If skipped, the patient record shows initials in the EMR drawer. Documents are viewable on the Patient Profile page.
 
 ---
 
@@ -873,6 +889,33 @@
 - Nursing progress note saved in WHO SOAP format
 - Note linked to patient's visit and encounter
 - Note visible to all clinical staff in the patient's record
+
+---
+
+## SOP-36: View Patient Profile
+
+**When:** Need to view a patient's complete record including documents, visits, triage history, and invoices.
+
+| Step | Action | Where to Click |
+|------|--------|----------------|
+| 1 | Go to **"Search Patients"** (Master Patient Index) | Sidebar → Search Patients |
+| 2 | **Search** by MRN, name, or phone | Search bar |
+| 3 | Click **"Profile"** button next to the patient | Patient results table |
+| 4 | **Patient Profile page opens** showing: | Profile page |
+| | → **Demographics:** Name, MRN, DOB, gender, phone, payer | Top card |
+| | → **Photo:** Patient photo (if uploaded) | Top-left |
+| | → **Documents & Files:** Uploaded documents with download links | Left column |
+| | → **Visit History:** Recent visits with status | Left column |
+| | → **Triage History:** Triage records with vitals and photos | Right column |
+| | → **Recent Invoices:** Invoice list with status | Right column |
+| 5 | Click **"View"** on any document to open/download it | Document list |
+| 6 | Click **"Back to Search"** to return to patient search | Top-right button |
+
+**What just happened?**
+- Complete patient record viewable in one place
+- Documents uploaded during registration/triage are accessible
+- Triage photos visible in triage history
+- Invoice status at a glance
 
 ---
 
@@ -1012,6 +1055,10 @@
 | "Seed command fails" | Run `pilot_reset` → `seed_data` → `seed_demo_modules` |
 | "Registration fee not showing on invoice" | Go to Hospital Settings > Financial Settings, set fee amount, register new patient |
 | "Photo not uploading on registration" | Ensure form has `enctype="multipart/form-data"`, check file < 5MB |
+| "Webcam not working" | Check browser permissions for camera access. Try Chrome/Edge. Use file upload as fallback |
+| "Documents not saving" | Ensure form has `enctype="multipart/form-data"`. Files max 10MB each |
+| "Can't see patient profile" | Click "Profile" button in patient search results (next to "View EMR") |
+| "Sidebar shows wrong links" | Log out and log back in. Sidebar is role-based — each role sees only their links |
 | "Triage Queue is empty" | Use "Clinical-First Triage" button on Triage page first |
 | "Follow-Up Queue shows no patients" | Create follow-up from OPD discharge or Nurse Notes page |
 | "Discharge button not working" | Select an active visit on the Nurse Notes page first |

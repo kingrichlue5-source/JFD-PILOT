@@ -4,7 +4,7 @@
 **Server:** http://127.0.0.1:8000
 **Date:** September 2026
 **Database:** Fresh pilot reset (empty clinical data, users preserved)
-**Version:** 6.0 — Board recommendations: Registration Fee config, Patient Photo Capture, Triage-First workflow, Follow-Up Queue & Discharge
+**Version:** 7.0 — SOP sidebar order, role-based visibility, webcam capture, document upload, patient profile
 
 ---
 
@@ -21,6 +21,38 @@
 | Pharmacist | `/login/` | `pharmacist` | `pharm123` |
 | Cashier | `/login/` | `cashier` | `cash123` |
 | Surgeon | `/login/` | `surgeon` | `surg123` |
+
+---
+
+## Sidebar Navigation Order (SOP Workflow)
+
+The sidebar follows the SOP workflow order. Each role only sees links relevant to them:
+
+| # | Link | Visible To |
+|---|------|-----------|
+| 1 | Dashboard | All |
+| 2 | **Triage** | Triage Nurse, Doctor, Nurse |
+| 3 | **Triage Queue** | Triage Nurse, Nurse |
+| 4 | **Register Patient** | MRO, Admin |
+| 5 | Search Patients | All clinical staff |
+| 6 | **OPD Consultation** | Doctor, Nurse |
+| 7 | **Nurse Notes** | Doctor, Nurse |
+| 8 | **IPD / Beds** | Doctor, Nurse |
+| 9 | **Emergency Room** | Doctor, Nurse, Triage Nurse |
+| 10 | **ER Nurse Evaluation** | Doctor, Nurse |
+| 11 | **Pediatric Assessment** | Doctor, Nurse |
+| 12 | **OBGYN** | Doctor, Nurse |
+| 13 | **Surgery** | Doctor, Nurse |
+| 14 | **Diagnostics** | Lab Tech, Doctor |
+| 15 | **Pharmacy** | Pharmacist |
+| 16 | **Billing / Cashier** | Cashier |
+| 17 | **Inventory** | Inventory Manager |
+| 18 | **Reports / HMIS** | Admin, Medical Director |
+| 19 | **Appointments** | Doctor, Nurse, MRO |
+| 20 | **Follow-Up Queue** | Doctor, Nurse |
+| -- | **Administration** | Admin only |
+
+**Role-based visibility:** A triage nurse only sees Triage + Triage Queue. A pharmacist only sees Pharmacy. A cashier only sees Billing. This keeps the sidebar clean and focused.
 
 ---
 
@@ -45,7 +77,16 @@
 
 **Visit Type Options:** OPD, Emergency, Pediatric, OBGYN, Surgery
 
-**Click:** "Save Patient"
+### Documents & Photos (Optional)
+Scroll down to the **"Documents & Photos"** section:
+
+| Feature | How to Use |
+|---------|-----------|
+| **Webcam Capture** | Click "Open Camera" → live video feed appears → click "Capture" → photo saved |
+| **Document Upload** | Drag & drop files into the upload zone, or click to browse. Supports PDF, DOCX, XLSX, JPG, PNG (max 10MB each) |
+| **Multiple Files** | Upload as many documents as needed — they appear in a file list with remove buttons |
+
+**Click:** "Register Patient & Send to Queue"
 
 **✅ EXPECTED RESULT:**
 - Success message: "Patient registered successfully"
@@ -113,6 +154,15 @@
 - Why? Temperature slightly elevated (37.8°C), BP normal, SpO2 normal
 
 **Acuity Level:** Keep the suggested Level 3 (or override if you disagree)
+
+### Photo & Documents (Optional)
+Scroll down to the **"Photo & Documents"** section in the triage form:
+
+| Feature | How to Use |
+|---------|-----------|
+| **Webcam Capture** | Click "Open Camera" → live video → "Capture" → photo attached to triage record |
+| **Document Upload** | Drag & drop or click to browse. Upload lab results, referral letters, imaging reports, etc. |
+| **Supported Types** | PDF, DOCX, XLSX, JPG, PNG — max 10MB each |
 
 **Click:** "Complete Triage & Route Patient"
 
@@ -717,6 +767,36 @@ After completing all 21 steps, verify:
 | 14 | Robert Emergency was discharged | Bed freed, visit completed |
 | 15 | All 3 patients in patient list | Search finds all |
 | 16 | No TEMP patients remain | is_temporary=False for all |
+
+---
+
+# QUICK REFERENCE: SIDEBAR NAVIGATION
+
+Sidebar order follows the SOP workflow. Each role only sees their relevant links:
+
+| Order | Link | Role Gate |
+|-------|------|-----------|
+| 1 | Dashboard | All |
+| 2 | Triage | Triage Nurse, Doctor, Nurse |
+| 3 | Triage Queue | Triage Nurse, Nurse |
+| 4 | Register Patient | MRO, Admin |
+| 5 | Search Patients | All clinical |
+| 6 | OPD Consultation | Doctor, Nurse |
+| 7 | Nurse Notes | Doctor, Nurse |
+| 8 | IPD / Beds | Doctor, Nurse |
+| 9 | Emergency Room | Doctor, Nurse, Triage Nurse |
+| 10 | ER Nurse Evaluation | Doctor, Nurse |
+| 11 | Pediatric Assessment | Doctor, Nurse |
+| 12 | OBGYN | Doctor, Nurse |
+| 13 | Surgery | Doctor, Nurse |
+| 14 | Diagnostics | Lab Tech, Doctor |
+| 15 | Pharmacy | Pharmacist |
+| 16 | Billing / Cashier | Cashier |
+| 17 | Inventory | Inventory Manager |
+| 18 | Reports / HMIS | Admin, Medical Director |
+| 19 | Appointments | Doctor, Nurse, MRO |
+| 20 | Follow-Up Queue | Doctor, Nurse |
+| -- | Administration | Admin only |
 
 ---
 
@@ -1373,6 +1453,10 @@ After completing all steps, verify:
 | "Can't select Surgery visit type" | Clear browser cache, refresh. Form now has 5 options |
 | "Registration fee not showing" | Go to Admin > Hospital Settings > Financial Settings, set fee amount |
 | "Photo not uploading" | Ensure form has `enctype="multipart/form-data"`, check file size < 5MB |
+| "Webcam not working" | Check browser camera permissions. Try Chrome/Edge. Use file upload as fallback |
+| "Documents not saving" | Ensure form has `enctype="multipart/form-data"`. Files max 10MB each |
+| "Can't see patient profile" | Click "Profile" button in patient search results (next to "View EMR") |
+| "Sidebar shows wrong links" | Log out and log back in. Sidebar is role-based — each role sees only their links |
 | "Triage Queue is empty" | Patients appear here after clinical-first triage. Use "Clinical-First Triage" button on Triage page |
 | "Follow-Up Queue shows no patients" | Create follow-up appointments from OPD discharge or nurse notes page |
 | "Discharge button not working" | Must have an active visit selected in Nurse Notes page |

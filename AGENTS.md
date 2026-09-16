@@ -118,4 +118,10 @@ Template views are in `jfd_hms/views.py` and serve pages at root paths (e.g., `/
 - **Follow-Up Queue:** `/clinical/follow-up-queue/` queries `Visit` objects where `is_follow_up=True` and `follow_up_date` is within configurable window (`HospitalSetting.followup_window_days`, default=30).
 - **Discharge with Follow-Up:** Nurse Notes page has "Discharge Patient" button that opens a modal with follow-up date picker. On save: `API.updateVisitStatus(visitId, 'completed')` + creates follow-up `Appointment`.
 - **HospitalSetting singleton:** `HospitalSetting.get_settings()` returns the single row (auto-creates if none exists). New fields: `registration_fee`, `followup_window_days`.
+- **Sidebar is role-based:** Each sidebar link checks both permission AND role. A triage nurse only sees Triage + Triage Queue. A pharmacist only sees Pharmacy. See `templates/base.html` for the full role-to-link mapping.
+- **Webcam + Document Upload:** Reusable partial at `templates/partials/webcam_upload.html`. Uses `navigator.mediaDevices.getUserMedia()` for webcam. Files saved via `default_storage.save()` to cloud/local storage. PatientDocument uses `file_url` CharField (stores URL string, not FileField).
+- **TriageRecord.photo:** `ImageField(upload_to='triage/photos/')` — added in migration `0013_triagerecord_photo`. Triage form passes `files` to `process()` method.
+- **Patient Profile:** `/patients/<uuid>/profile/` — view at `jfd_hms/views.py:patient_profile`. Shows demographics, documents, visits, triage history, invoices.
+- **Document storage:** `PatientDocument.file_url` stores the URL returned by `default_storage.url(path)`. In production (Cloudinary), this is a CDN URL. In local dev, it's `/media/...`.
+- **Sidebar SOP order:** Triage → Triage Queue → Register Patient → Search → OPD → Nurse Notes → IPD → ER → Pediatric → OBGYN → Surgery → Diagnostics → Pharmacy → Billing → Inventory → Reports → Appointments → Follow-Up → Admin.
 
