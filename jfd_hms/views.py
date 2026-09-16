@@ -19,21 +19,25 @@ logger = logging.getLogger(__name__)
 def _get_default_dashboard(user):
     if user.is_superuser:
         return '/'
-    from users_auth.models import UserRole, RolePermission
-    role_ids = UserRole.objects.filter(user=user, is_active=True).values_list('role_id', flat=True)
-    perms = set(RolePermission.objects.filter(
-        role_id__in=role_ids, permission__is_active=True
-    ).values_list('permission__code', flat=True))
-    if 'PAYMENT_PROCESS' in perms:
-        return '/cashier/'
-    if 'RX_DISPENSE' in perms:
-        return '/pharmacy/dispensing/'
-    if 'TRIAGE_PERFORM' in perms and 'ENCOUNTER_VIEW' not in perms:
-        return '/clinical/triage/'
-    if 'INVENTORY_MANAGE' in perms:
-        return '/inventory/'
-    if 'ORDER_VIEW' in perms and 'ENCOUNTER_VIEW' not in perms and 'ENCOUNTER_EDIT' not in perms:
-        return '/clinical/diagnostics/'
+    try:
+        from users_auth.models import UserRole
+        role_codes = set(UserRole.objects.filter(
+            user=user, is_active=True
+        ).values_list('role__code', flat=True))
+        if 'CASHIER' in role_codes:
+            return '/cashier/'
+        if 'PHARMACIST' in role_codes:
+            return '/pharmacy/dispensing/'
+        if 'TRIAGE_NURSE' in role_codes:
+            return '/clinical/triage/'
+        if 'INV_MGR' in role_codes:
+            return '/inventory/'
+        if 'LAB_TECH' in role_codes:
+            return '/clinical/diagnostics/'
+        if 'DOCTOR' in role_codes:
+            return '/opd/'
+    except Exception:
+        pass
     return '/'
 
 
