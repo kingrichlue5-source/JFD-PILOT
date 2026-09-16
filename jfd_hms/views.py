@@ -1898,3 +1898,62 @@ def debug_render(request):
         }
 
     return JsonResponse(results, json_dumps_params={'indent': 2})
+
+
+@csrf_exempt
+def setup_prod(request):
+    """One-time production setup: apply migrations + create inventory user. Remove after use."""
+    import traceback
+    from django.http import JsonResponse
+    from io import StringIO
+
+    results = {}
+
+    # 1. Apply migrations
+    try:
+        from django.core.management import call_command
+        out = StringIO()
+        err = StringIO()
+        call_command('migrate', '--noinput', stdout=out, stderr=err)
+        results['migrate'] = {
+            'status': 'OK',
+            'stdout': out.getvalue()[-500:] if out.getvalue() else '',
+            'stderr': err.getvalue()[-500:] if err.getvalue() else '',
+        }
+    except Exception as e:
+        results['migrate'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+        }
+
+    # 2. Create inventory user
+    try:
+        from django.core.management import call_command
+        out = StringIO()
+        err = StringIO()
+        call_command('add_inventory_user', stdout=out, stderr=err)
+        results['inventory_user'] = {
+            'status': 'OK',
+            'stdout': out.getvalue()[-500:] if out.getvalue() else '',
+            'stderr': err.getvalue()[-500:] if err.getvalue() else '',
+        }
+    except Exception as e:
+        results['inventory_user'] = {
+            'status': 'ERROR',
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+        }
+
+    # 3. Verify migration status
+    try:
+        from django.core.management import call_command
+        out = StringIO()
+        call_command('showmigrations', '--plan', stdout=out, verbosity=1)
+        plan = out.getvalue()
+        unapplied = [l.strip() for l in plan.split('\n') if l.strip().startswith('[ ]')]
+        results['migration_status'] = unapplied if unapplied else 'All applied'
+    except Exception as e:
+        results['migration_status'] = f'ERROR: {e}'
+
+    return JsonResponse(results, json_dumps_params={'indent': 2})
