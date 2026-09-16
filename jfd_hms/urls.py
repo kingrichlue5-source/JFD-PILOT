@@ -25,6 +25,9 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
 
+    # Debug endpoint (temporary)
+    path('debug-env/', views.debug_env, name='debug-env'),
+
     # Template views (pages)
     path('', views.index, name='index'),
     path('patients/search/', views.patient_search, name='patient-search-page'),

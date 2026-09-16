@@ -9,7 +9,11 @@ from django.middleware.csrf import get_token
 from datetime import date, timedelta
 from jfd_hms.permissions import require_permission
 import json
+import logging
+import traceback
 from django.http import JsonResponse
+
+logger = logging.getLogger(__name__)
 
 
 def _get_default_dashboard(user):
@@ -1615,3 +1619,135 @@ def patient_profile(request, patient_id):
         'triage_records': triage_records,
         'invoices': invoices,
     })
+
+
+@csrf_exempt
+def debug_env(request):
+    """Temporary debug endpoint to diagnose production issues. Remove after fixing."""
+    import os
+    import django
+    from django.conf import settings
+
+    checks = {}
+
+    # 1. Django setup
+    checks['django_version'] = django.get_version()
+    checks['debug'] = settings.DEBUG
+    checks['allowed_hosts'] = settings.ALLOWED_HOSTS
+
+    # 2. Database connectivity
+    try:
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            checks['database'] = 'OK'
+    except Exception as e:
+        checks['database'] = f'ERROR: {e}'
+
+    # 3. Migrations status
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+        out = StringIO()
+        call_command('showmigrations', '--plan', stdout=out, verbosity=1)
+        plan = out.getvalue()
+        unapplied = [l.strip() for l in plan.split('\n') if l.strip().startswith('[ ]')]
+        checks['unapplied_migrations'] = unapplied if unapplied else 'None'
+    except Exception as e:
+        checks['migrations_check'] = f'ERROR: {e}'
+
+    # 4. Template loading
+    try:
+        from django.template.loader import get_template
+        t = get_template('patients/register.html')
+        checks['register_template'] = 'OK'
+    except Exception as e:
+        checks['register_template'] = f'ERROR: {e}'
+
+    try:
+        from django.template.loader import get_template
+        t = get_template('clinical/triage.html')
+        checks['triage_template'] = 'OK'
+    except Exception as e:
+        checks['triage_template'] = f'ERROR: {e}'
+
+    try:
+        from django.template.loader import get_template
+        t = get_template('base.html')
+        checks['base_template'] = 'OK'
+    except Exception as e:
+        checks['base_template'] = f'ERROR: {e}'
+
+    # 5. Model imports
+    try:
+        from patients.models import Patient, PatientDocument
+        checks['patient_model'] = 'OK'
+    except Exception as e:
+        checks['patient_model'] = f'ERROR: {e}'
+
+    try:
+        from clinical.models import Visit, TriageRecord
+        checks['clinical_model'] = 'OK'
+    except Exception as e:
+        checks['clinical_model'] = f'ERROR: {e}'
+
+    try:
+        from users_auth.models import HospitalSetting, UserRole, RolePermission
+        checks['auth_model'] = 'OK'
+    except Exception as e:
+        checks['auth_model'] = f'ERROR: {e}'
+
+    # 6. Storage backend
+    try:
+        from django.core.files.storage import default_storage
+        checks['storage_backend'] = str(type(default_storage).__name__)
+        checks['storage_module'] = str(type(default_storage).__module__)
+    except Exception as e:
+        checks['storage'] = f'ERROR: {e}'
+
+    # 7. Cloudinary config
+    checks['cloudinary_url'] = bool(os.environ.get('CLOUDINARY_URL', ''))
+    checks['cloud_name'] = bool(os.environ.get('CLOUDINARY_CLOUD_NAME', ''))
+    try:
+        if os.environ.get('CLOUDINARY_URL'):
+            import cloudinary
+            checks['cloudinary_import'] = 'OK'
+        else:
+            checks['cloudinary_import'] = 'Not configured (no CLOUDINARY_URL)'
+    except ImportError as e:
+        checks['cloudinary_import'] = f'ERROR: {e}'
+
+    # 8. Form imports
+    try:
+        from patients.forms import PatientRegistrationForm
+        checks['register_form'] = 'OK'
+    except Exception as e:
+        checks['register_form'] = f'ERROR: {e}'
+
+    try:
+        from clinical.forms import TriageForm
+        checks['triage_form'] = 'OK'
+    except Exception as e:
+        checks['triage_form'] = f'ERROR: {e}'
+
+    # 9. Template tag imports
+    try:
+        from users_auth.templatetags.rbac_tags import user_has_role, user_has_permission
+        checks['rbac_tags'] = 'OK'
+    except Exception as e:
+        checks['rbac_tags'] = f'ERROR: {e}'
+
+    try:
+        from exports.templatetags.export_tags import export_buttons
+        checks['export_tags'] = 'OK'
+    except Exception as e:
+        checks['export_tags'] = f'ERROR: {e}'
+
+    # 10. Static files
+    try:
+        from django.contrib.staticfiles.finders import find
+        checks['static_css'] = 'OK' if find('css/style.css') else 'NOT FOUND'
+    except Exception as e:
+        checks['static_files'] = f'ERROR: {e}'
+
+    return JsonResponse(checks, json_dumps_params={'indent': 2})
