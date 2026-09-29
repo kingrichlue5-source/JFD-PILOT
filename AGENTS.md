@@ -25,6 +25,9 @@ python seed_data.py
 # Seed via management command
 python manage.py seed_data
 
+# Seed hospital settings + the 10 test accounts (idempotent, resets test passwords)
+python manage.py setup_test_users
+
 # Collect static files
 python manage.py collectstatic
 
