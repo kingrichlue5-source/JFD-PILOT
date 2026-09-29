@@ -203,6 +203,11 @@ CLOUDINARY_STORAGE = {
 }
 
 # Storage backends
+# Legacy setting kept for backwards compatibility with packages (e.g.
+# django-cloudinary-storage) that check settings.STATICFILES_STORAGE
+# directly instead of the newer STORAGES dict.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 STORAGES = {
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.StaticFilesStorage',
@@ -215,6 +220,7 @@ if _cloudinary_url:
         import cloudinary_storage
         INSTALLED_APPS = ['cloudinary', 'cloudinary_storage'] + INSTALLED_APPS
         STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+        STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
     except ImportError:
         STORAGES['default'] = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
 else:
