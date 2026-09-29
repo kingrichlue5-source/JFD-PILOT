@@ -7,6 +7,7 @@ Intended for the live (Railway) database, run from the service shell:
 
 Steps:
   1. Seed hospital settings (branding, contact details, registration fee, follow-up window)
+     and download the hospital logo from jfdhospital.com into the default storage
   2. Seed reference data — departments, roles, permissions, lab/radiology catalogues,
      medications, service prices, inventory stores (existing `seed_data` via `create_demo_users`),
      plus wards/rooms/beds and the standard price list
@@ -96,6 +97,10 @@ HOSPITAL_CONTACT = {
     'website': 'https://jfdhospital.com/',
 }
 
+# Hospital logo published on the official website (uploaded to default storage: Cloudinary in production)
+LOGO_URL = 'https://jfdhospital.com/wp-content/uploads/2025/04/JFD-Original_logo.png'
+LOGO_FILENAME = 'jfd-logo.png'
+
 
 class Command(BaseCommand):
     help = 'Seed hospital settings and the ten test accounts (idempotent, resets test passwords)'
@@ -118,6 +123,7 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write(self.style.HTTP_INFO('Step 1: Hospital settings...'))
         setting = self.seed_settings()
+        self.seed_logo(setting)
 
         # Step 2: reference data, demo users, wards/beds, pricing
         if self.dry_run:
@@ -145,6 +151,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  Phone:             {setting.phone or "(not set)"}')
         self.stdout.write(f'  Email:             {setting.email or "(not set)"}')
         self.stdout.write(f'  Address:           {setting.address or "(not set — add at /admin/settings/)"}')
+        self.stdout.write(f'  Logo:              {setting.logo.url if setting.logo else "(not set)"}')
 
         self.print_credentials()
 
@@ -180,6 +187,25 @@ class Command(BaseCommand):
         else:
             self.stdout.write('  Settings already populated — left unchanged')
         return setting
+
+    def seed_logo(self, setting):
+        """Download the hospital logo from the official site and store it via the default storage."""
+        if setting.logo:
+            self.stdout.write(f'  Logo already set: {setting.logo.name}')
+            return
+        if self.dry_run:
+            self.stdout.write(f'  Would download logo: {LOGO_URL}')
+            return
+        try:
+            import requests
+            from django.core.files.base import ContentFile
+
+            response = requests.get(LOGO_URL, timeout=30)
+            response.raise_for_status()
+            setting.logo.save(LOGO_FILENAME, ContentFile(response.content), save=True)
+            self.stdout.write(self.style.SUCCESS(f'  Logo uploaded: {setting.logo.url}'))
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f'  Logo skipped ({exc}) — set it later at /admin/settings/'))
 
     # ------------------------------------------------------------------- accounts
     def sync_users(self):
