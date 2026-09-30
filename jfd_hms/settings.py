@@ -28,12 +28,31 @@ LOGS_DIR.mkdir(exist_ok=True)
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-0ie$d-__8nx9#t=_!qt+-psgom8#!*)i@wfyf+p5wn6m!nzy#-')
+# Sevalla / Railway inject DJANGO_* variables; the unprefixed names are still
+# honoured so existing local .env files and older environments keep working.
+SECRET_KEY = (
+    config('DJANGO_SECRET_KEY', default='')
+    or config('SECRET_KEY', default='django-insecure-0ie$d-__8nx9#t=_!qt+-psgom8#!*)i@wfyf+p5wn6m!nzy#-')
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = (config('DJANGO_DEBUG', default='') or config('DEBUG', default='True')).lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+_allowed_hosts = config('DJANGO_ALLOWED_HOSTS', default='') or config('ALLOWED_HOSTS', default='')
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(',') if host.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.sevalla.app']
+
+# Required for HTTPS form posts behind Sevalla's TLS-terminating proxy
+# (login, admin, any CSRF-protected POST).
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config(
+        'CSRF_TRUSTED_ORIGINS',
+        default='http://localhost:8000,http://127.0.0.1:8000,https://*.sevalla.app',
+    ).split(',')
+    if origin.strip()
+]
 
 
 # Application definition
@@ -257,7 +276,7 @@ REST_FRAMEWORK = {
 # CORS settings
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000',
+    default='http://localhost:3000,http://127.0.0.1:3000,https://*.sevalla.app',
     cast=Csv()
 )
 CORS_ALLOW_CREDENTIALS = True

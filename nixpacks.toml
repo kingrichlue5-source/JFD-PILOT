@@ -1,5 +1,17 @@
+# Sevalla builds this app with Nixpacks (default build strategy).
+# The Python version comes from runtime.txt / mise.toml (3.11.8).
+# Only keys set here override the auto-detected Python plan, so `pip` and the
+# interpreter still come from Nixpacks' Python provider.
+
 [phases.setup]
-nixPkgs = ["libpq-dev"]
+aptPkgs = ["libpq-dev", "build-essential"]
+
+[phases.install]
+cmds = ["pip install --no-cache-dir -r requirements.txt"]
 
 [phases.build]
-cmds = ["pip install -r requirements.txt", "python manage.py collectstatic --noinput"]
+cmds = ["python manage.py collectstatic --noinput"]
+
+[start]
+# Same command as the Procfile `web` process: migrate, seed, then serve.
+cmd = "bash start.sh"
